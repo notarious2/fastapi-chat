@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "chat-backend"
+version = "0.1.0"
+description = ""
+authors = ["Bekzod Mirahmedov <notarious2@gmail.com>"]
+readme = "README.md"
+packages = [{include = "chat_backend"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.103.1"
+pydantic = "^2.3.0"
+uvicorn = "^0.23.2"
+websockets = "^11.0.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
