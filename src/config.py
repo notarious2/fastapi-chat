@@ -18,6 +18,11 @@ class GlobalSettings(BaseSettings):
     # admin
     ADMIN_SECRET_KEY: str = os.environ.get("ADMIN_SECRET_KEY", "Hv9LGqARc473ceBUYDw1FR0QaXOA3Ky4")
 
+    # redis
+    redis_host: str = os.environ.get("REDIS_HOST", "chat-redis")
+    redis_port: str | int = os.environ.get("REDIS_PORT", 6379)
+    redis_password: str | None = os.environ.get("REDIS_PASSWORD", None)
+
 
 class TestSettings(GlobalSettings):
     db_schema: str = "test"

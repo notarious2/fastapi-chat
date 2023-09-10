@@ -14,7 +14,7 @@ services:
       - db
     networks:
       - chat-net
-    command: uvicorn src.main:app --host=0.0.0.0 --port=8001 --reload --log-level=debug
+    command: uvicorn main:app --host=0.0.0.0 --port=8001 --reload
 
   db:
     image: postgres:15-alpine
@@ -28,6 +28,15 @@ services:
       - 5442:5432
     volumes:
       - postgres_data:/var/lib/postgresql/data/
+    networks:
+      - chat-net
+
+  redis-service:
+    image: redis
+    container_name: chat-redis
+    restart: always
+    ports:
+      - "6379:6379"
     networks:
       - chat-net
 
