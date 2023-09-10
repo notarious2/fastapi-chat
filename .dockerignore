@@ -1,0 +1,12 @@
+media
+.git
+celerybeat.pid
+celerybeat-schedule
+venv
+env
+.coverage
+coverage.xml
+.cache
+.pytest_cache
+**/__pycache__
+.idea

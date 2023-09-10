@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chat-backend
+    ports:
+      - "8001:8001"
+    volumes:
+      - .:/opt/chat
+    depends_on:
+      - db
+    networks:
+      - chat-net
+    command: uvicorn src.main:app --host=0.0.0.0 --port=8001 --reload --log-level=debug
+
+  db:
+    image: postgres:15-alpine
+    container_name: chat-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - 5442:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    networks:
+      - chat-net
+
+  pgadmin:
+    container_name: chat-pgadmin
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "7070:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - chat-net
+
+networks:
+  chat-net:
+    external: true
+
+volumes:
+  postgres_data:
+  pgadmin_data:
