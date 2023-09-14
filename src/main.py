@@ -1,11 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.api.registration.router import account_router
 from src.api.websocket.websocket import websocket_router
 
 app = FastAPI()
 
 app.include_router(websocket_router)
+app.include_router(account_router)
 
 app.add_middleware(
     CORSMiddleware,
