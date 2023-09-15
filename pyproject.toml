@@ -19,6 +19,7 @@ redis = "^5.0.0"
 asyncpg = "^0.28.0"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+httpx = "^0.25.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -45,3 +46,10 @@ skip_glob = ["**/migrations/**"]
 
 [tool.flake8]
 max-line-length = 120
+
+[tool.pytest.ini_options]
+filterwarnings = ["ignore::DeprecationWarning"]
+asyncio_mode="auto"
+env = [
+    "ENVIRONMENT = test",
+]

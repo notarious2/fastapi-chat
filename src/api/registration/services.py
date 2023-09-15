@@ -24,4 +24,4 @@ async def create_user(db_session: AsyncSession, user_schema: UserRegisterSchema)
     )
     db_session.add(new_user)
 
-    await db_session.flush()
+    await db_session.commit()
