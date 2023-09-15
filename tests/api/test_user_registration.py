@@ -32,3 +32,53 @@ async def test_register_succeeds_given_valid_data(db_session: AsyncSession, asyn
     assert user.last_name == "Doe"
     assert user.email == "example@gmail.com"
     assert verify_password("test_password", user.password) is True
+
+
+async def test_register_fails_given_invalid_email(async_client: AsyncClient):
+    url = "/register/"
+    payload = {
+        "email": "not_valid_email.com",
+        "username": "test_username",
+        "password": "test_password",
+        "first_name": "John",
+        "last_name": "Doe",
+    }
+
+    response = await async_client.post(url, json=payload)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert "value is not a valid email address" in response.json()["detail"][0]["msg"]
+
+
+async def test_register_fails_given_user_with_provided_email_already_exists(async_client: AsyncClient, test_user: User):
+    url = "/register/"
+    payload = {
+        "email": test_user.email,
+        "username": "test_username",
+        "password": "test_password",
+        "first_name": "John",
+        "last_name": "Doe",
+    }
+
+    response = await async_client.post(url, json=payload)
+
+    assert response.status_code == status.HTTP_409_CONFLICT
+    assert response.json() == {"detail": "User with provided credentials already exists"}
+
+
+async def test_register_fails_given_user_with_provided_username_already_exists(
+    async_client: AsyncClient, test_user: User
+):
+    url = "/register/"
+    payload = {
+        "email": "example2@email.com",
+        "username": test_user.username,
+        "password": "test_password",
+        "first_name": "John",
+        "last_name": "Doe",
+    }
+
+    response = await async_client.post(url, json=payload)
+
+    assert response.status_code == status.HTTP_409_CONFLICT
+    assert response.json() == {"detail": "User with provided credentials already exists"}

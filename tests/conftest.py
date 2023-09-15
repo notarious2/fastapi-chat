@@ -1,6 +1,5 @@
 import asyncio
-from datetime import date, datetime, timedelta
-from typing import AsyncGenerator, Tuple
+from typing import AsyncGenerator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,10 +8,11 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-
 from src.config import settings
 from src.database import get_async_session, metadata
 from src.main import app
+from src.models import User
+from src.utils import get_hashed_password
 
 DATABASE_URL_TEST = (
     f"postgresql+asyncpg://"
@@ -55,7 +55,7 @@ async def clear_tables(db_session: AsyncSession):
 client = TestClient(app)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def event_loop(request):
     """Create an instance of the default event loop for each test case."""
     loop = asyncio.get_event_loop_policy().new_event_loop()
@@ -67,3 +67,18 @@ def event_loop(request):
 async def async_client() -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(app=app, base_url="http://test") as async_client:
         yield async_client
+
+
+@pytest.fixture
+async def test_user(db_session: AsyncSession) -> User:
+    user = User(
+        password=get_hashed_password("password"),
+        username="test_username",
+        first_name="Bob",
+        last_name="Stewart",
+        email="user@example.com",
+    )
+    db_session.add(user)
+    await db_session.commit()
+
+    return user
