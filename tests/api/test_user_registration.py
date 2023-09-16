@@ -11,7 +11,7 @@ async def test_register_succeeds_given_valid_data(db_session: AsyncSession, asyn
     url = "/register/"
     payload = {
         "email": "example@gmail.com",
-        "username": "test_username",
+        "username": "bob_username",
         "password": "test_password",
         "first_name": "John",
         "last_name": "Doe",
@@ -27,7 +27,7 @@ async def test_register_succeeds_given_valid_data(db_session: AsyncSession, asyn
     user: User = result.scalar_one_or_none()
 
     assert user is not None
-    assert user.username == "test_username"
+    assert user.username == "bob_username"
     assert user.first_name == "John"
     assert user.last_name == "Doe"
     assert user.email == "example@gmail.com"
@@ -38,7 +38,7 @@ async def test_register_fails_given_invalid_email(async_client: AsyncClient):
     url = "/register/"
     payload = {
         "email": "not_valid_email.com",
-        "username": "test_username",
+        "username": "bob_username",
         "password": "test_password",
         "first_name": "John",
         "last_name": "Doe",
@@ -50,11 +50,11 @@ async def test_register_fails_given_invalid_email(async_client: AsyncClient):
     assert "value is not a valid email address" in response.json()["detail"][0]["msg"]
 
 
-async def test_register_fails_given_user_with_provided_email_already_exists(async_client: AsyncClient, test_user: User):
+async def test_register_fails_given_user_with_provided_email_already_exists(async_client: AsyncClient, bob_user: User):
     url = "/register/"
     payload = {
-        "email": test_user.email,
-        "username": "test_username",
+        "email": bob_user.email,
+        "username": "bob_username",
         "password": "test_password",
         "first_name": "John",
         "last_name": "Doe",
@@ -67,12 +67,12 @@ async def test_register_fails_given_user_with_provided_email_already_exists(asyn
 
 
 async def test_register_fails_given_user_with_provided_username_already_exists(
-    async_client: AsyncClient, test_user: User
+    async_client: AsyncClient, bob_user: User
 ):
     url = "/register/"
     payload = {
         "email": "example2@email.com",
-        "username": test_user.username,
+        "username": bob_user.username,
         "password": "test_password",
         "first_name": "John",
         "last_name": "Doe",

@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 from typing import AsyncGenerator
 
 import pytest
@@ -8,10 +9,11 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+from src.api.authentication.utils import create_access_token
 from src.config import settings
 from src.database import get_async_session, metadata
 from src.main import app
-from src.models import User
+from src.models import Chat, ChatType, Message, User
 from src.utils import get_hashed_password
 
 DATABASE_URL_TEST = (
@@ -70,10 +72,10 @@ async def async_client() -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest.fixture
-async def test_user(db_session: AsyncSession) -> User:
+async def bob_user(db_session: AsyncSession) -> User:
     user = User(
         password=get_hashed_password("password"),
-        username="test_username",
+        username="bob_username",
         first_name="Bob",
         last_name="Stewart",
         email="user@example.com",
@@ -82,3 +84,87 @@ async def test_user(db_session: AsyncSession) -> User:
     await db_session.commit()
 
     return user
+
+
+@pytest.fixture
+def authenticated_bob_client(async_client: AsyncClient, bob_user: User):
+    access_token = create_access_token(subject=bob_user.email)
+    headers = {"Authorization": f"Bearer {access_token}"}
+    async_client.headers.update(headers)
+
+    yield async_client
+
+
+@pytest.fixture
+async def emily_user(db_session: AsyncSession) -> User:
+    user = User(
+        password=get_hashed_password("password"),
+        username="emily",
+        first_name="Emily",
+        last_name="Hazel",
+        email="emily@example.com",
+    )
+    db_session.add(user)
+    await db_session.commit()
+
+    return user
+
+
+@pytest.fixture
+async def doug_user(db_session: AsyncSession) -> User:
+    user = User(
+        password=get_hashed_password("password"),
+        username="douglas",
+        first_name="Douglas",
+        last_name="Walrus",
+        email="douglas@example.com",
+    )
+    db_session.add(user)
+    await db_session.commit()
+
+    return user
+
+
+@pytest.fixture
+def authenticated_doug_client(async_client: AsyncClient, doug_user: User):
+    access_token = create_access_token(subject=doug_user.email)
+    headers = {"Authorization": f"Bearer {access_token}"}
+    async_client.headers.update(headers)
+
+    yield async_client
+
+
+@pytest.fixture
+async def direct_chat(db_session: AsyncSession, bob_user: User, emily_user: User) -> Chat:
+    chat = Chat(chat_type=ChatType.DIRECT)
+    chat.users.append(bob_user)
+    chat.users.append(emily_user)
+    db_session.add(chat)
+    await db_session.commit()
+
+    return chat
+
+
+@pytest.fixture
+async def direct_chat_messages_history(
+    db_session: AsyncSession, bob_user: User, emily_user: User, direct_chat: Chat
+) -> list[Message]:
+    await db_session.refresh(direct_chat, attribute_names=["messages"])
+    Bob = True
+    sender_id = bob_user.id if Bob else emily_user.id
+    sender_name = "Bob" if Bob else "Emily"
+
+    for i in range(1, 21):
+        message = Message(
+            content=f"#{i} message sent by {sender_name}",
+            user_id=sender_id,
+            chat_id=direct_chat.id,
+            created_at=datetime.now(),
+        )
+        Bob = not Bob
+        direct_chat.messages.append(message)
+
+    db_session.add(direct_chat)
+    await db_session.commit()
+
+    return direct_chat.messages
