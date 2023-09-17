@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from src.models import Chat, ChatType, Message, User
 
 
-async def get_direct_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat:
+async def get_bob_emily_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat:
     query = (
         select(Chat)
         .where(
@@ -27,7 +27,7 @@ async def get_direct_chat(db_session: AsyncSession, *, initiator_user: User, rec
     return chat
 
 
-async def create_direct_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat:
+async def create_bob_emily_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat:
     chat = Chat(chat_type=ChatType.DIRECT)
     chat.users.append(initiator_user)
     chat.users.append(recipient_user)
@@ -60,3 +60,20 @@ async def send_message_to_chat(db_session: AsyncSession, *, content: str, chat_i
     await db_session.commit()
 
     return message
+
+
+async def get_user_chats(db_session: AsyncSession, *, current_user: User) -> list[Chat]:
+    query = (
+        select(Chat)
+        .where(
+            and_(
+                Chat.users.contains(current_user),
+            )
+        )
+        .options(selectinload(Chat.users))
+    )
+    result = await db_session.execute(query)
+
+    chats: list[Chat] = result.scalars().all()
+
+    return chats

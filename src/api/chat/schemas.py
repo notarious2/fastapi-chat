@@ -27,3 +27,11 @@ class DisplayDirectChatSchema(BaseModel):
     chat_type: ChatType
     created_at: datetime
     users: list[UserSchema]
+
+
+class GetChatsSchema(BaseModel):
+    guid: UUID4
+    chat_type: ChatType
+    created_at: datetime
+    is_active: bool
+    users: list[UserSchema]

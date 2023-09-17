@@ -135,7 +135,7 @@ def authenticated_doug_client(async_client: AsyncClient, doug_user: User):
 
 
 @pytest.fixture
-async def direct_chat(db_session: AsyncSession, bob_user: User, emily_user: User) -> Chat:
+async def bob_emily_chat(db_session: AsyncSession, bob_user: User, emily_user: User) -> Chat:
     chat = Chat(chat_type=ChatType.DIRECT)
     chat.users.append(bob_user)
     chat.users.append(emily_user)
@@ -146,10 +146,21 @@ async def direct_chat(db_session: AsyncSession, bob_user: User, emily_user: User
 
 
 @pytest.fixture
-async def direct_chat_messages_history(
-    db_session: AsyncSession, bob_user: User, emily_user: User, direct_chat: Chat
+async def bob_doug_chat(db_session: AsyncSession, doug_user: User, bob_user: User) -> Chat:
+    chat = Chat(chat_type=ChatType.DIRECT)
+    chat.users.append(doug_user)
+    chat.users.append(bob_user)
+    db_session.add(chat)
+    await db_session.commit()
+
+    return chat
+
+
+@pytest.fixture
+async def bob_emily_chat_messages_history(
+    db_session: AsyncSession, bob_user: User, emily_user: User, bob_emily_chat: Chat
 ) -> list[Message]:
-    await db_session.refresh(direct_chat, attribute_names=["messages"])
+    await db_session.refresh(bob_emily_chat, attribute_names=["messages"])
     Bob = True
     sender_id = bob_user.id if Bob else emily_user.id
     sender_name = "Bob" if Bob else "Emily"
@@ -158,13 +169,13 @@ async def direct_chat_messages_history(
         message = Message(
             content=f"#{i} message sent by {sender_name}",
             user_id=sender_id,
-            chat_id=direct_chat.id,
+            chat_id=bob_emily_chat.id,
             created_at=datetime.now(),
         )
         Bob = not Bob
-        direct_chat.messages.append(message)
+        bob_emily_chat.messages.append(message)
 
-    db_session.add(direct_chat)
+    db_session.add(bob_emily_chat)
     await db_session.commit()
 
-    return direct_chat.messages
+    return bob_emily_chat.messages

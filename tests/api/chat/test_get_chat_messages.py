@@ -8,9 +8,9 @@ from src.models import Chat
 
 
 async def test_get_messages_succeeds_given_existing_chat_with_messages(
-    authenticated_bob_client: AsyncClient, direct_chat: Chat, direct_chat_messages_history: list[Chat]
+    authenticated_bob_client: AsyncClient, bob_emily_chat: Chat, bob_emily_chat_messages_history: list[Chat]
 ):
-    url = f"/chat/{direct_chat.guid}/messages/"
+    url = f"/chat/{bob_emily_chat.guid}/messages/"
 
     response = await authenticated_bob_client.get(url)
 
@@ -20,9 +20,9 @@ async def test_get_messages_succeeds_given_existing_chat_with_messages(
 
 
 async def test_get_messages_succeeds_given_existing_chat_without_messages(
-    authenticated_bob_client: AsyncClient, direct_chat: Chat
+    authenticated_bob_client: AsyncClient, bob_emily_chat: Chat
 ):
-    url = f"/chat/{direct_chat.guid}/messages/"
+    url = f"/chat/{bob_emily_chat.guid}/messages/"
 
     response = await authenticated_bob_client.get(url)
 
@@ -40,9 +40,9 @@ async def test_get_messages_fails_given_chat_does_not_exist(authenticated_bob_cl
 
 
 async def test_get_messages_fails_given_user_is_not_chat_participant(
-    authenticated_doug_client: AsyncClient, direct_chat: Chat
+    authenticated_doug_client: AsyncClient, bob_emily_chat: Chat
 ):
-    url = f"/chat/{direct_chat.guid}/messages/"
+    url = f"/chat/{bob_emily_chat.guid}/messages/"
 
     response = await authenticated_doug_client.get(url)
 

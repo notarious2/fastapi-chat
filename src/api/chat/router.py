@@ -5,12 +5,13 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from fastapi_pagination import Page, paginate
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.chat.schemas import CreateDirectChatSchema, DisplayDirectChatSchema, MessageSchema
+from src.api.chat.schemas import CreateDirectChatSchema, DisplayDirectChatSchema, GetChatsSchema, MessageSchema
 from src.api.chat.services import (
-    create_direct_chat,
+    create_bob_emily_chat,
+    get_bob_emily_chat,
     get_chat_by_guid,
-    get_direct_chat,
     get_user_by_guid,
+    get_user_chats,
     send_message_to_chat,
 )
 from src.database import get_async_session
@@ -23,13 +24,13 @@ chat_router = APIRouter(tags=["Chat Management"])
 
 
 @chat_router.post("/chat/direct/", summary="Get or create a direct chat", response_model=DisplayDirectChatSchema)
-async def get_or_create_direct_chat(
-    direct_chat_schema: CreateDirectChatSchema,
+async def get_or_create_bob_emily_chat(
+    bob_emily_chat_schema: CreateDirectChatSchema,
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
 ):
     # check if another user (recipient) exists
-    recipient_user_guid = direct_chat_schema.recipient_user_guid
+    recipient_user_guid = bob_emily_chat_schema.recipient_user_guid
     recipient_user: User | None = await get_user_by_guid(db_session, user_guid=recipient_user_guid)
 
     # TODO: must check that recipient user is not the same as initiator
@@ -39,10 +40,10 @@ async def get_or_create_direct_chat(
         )
 
     # return chat if already exists
-    chat: Chat | None = await get_direct_chat(db_session, initiator_user=current_user, recipient_user=recipient_user)
+    chat: Chat | None = await get_bob_emily_chat(db_session, initiator_user=current_user, recipient_user=recipient_user)
 
     if not chat:
-        chat: Chat = await create_direct_chat(db_session, initiator_user=current_user, recipient_user=recipient_user)
+        chat: Chat = await create_bob_emily_chat(db_session, initiator_user=current_user, recipient_user=recipient_user)
 
     return chat
 
@@ -84,4 +85,11 @@ async def get_user_messages_in_chat(
     return paginate(chat.messages)
 
 
-# TODO: Get users chats
+@chat_router.get("/chats/", summary="Get user's chats", response_model=list[GetChatsSchema])  #
+async def get_user_chats_view(
+    db_session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user),
+):
+    chats: list[Chat] = await get_user_chats(db_session, current_user=current_user)
+
+    return chats
