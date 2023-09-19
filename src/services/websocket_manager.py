@@ -38,7 +38,6 @@ class WebSocketManager:
 
     async def remove_user_from_chat(self, chat_guid: str, websocket: WebSocket) -> None:
         self.chats[chat_guid].remove(websocket)
-
         if len(self.chats[chat_guid]) == 0:
             del self.chats[chat_guid]
             await self.pubsub_client.unsubscribe(chat_guid)

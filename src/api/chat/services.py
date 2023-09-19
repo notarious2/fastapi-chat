@@ -5,9 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.models import Chat, ChatType, Message, User
+from fastapi_pagination.ext.sqlalchemy import paginate
 
 
-async def get_bob_emily_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat:
+async def get_direct_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat:
     query = (
         select(Chat)
         .where(
@@ -27,7 +28,7 @@ async def get_bob_emily_chat(db_session: AsyncSession, *, initiator_user: User, 
     return chat
 
 
-async def create_bob_emily_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat:
+async def create_direct_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat:
     chat = Chat(chat_type=ChatType.DIRECT)
     chat.users.append(initiator_user)
     chat.users.append(recipient_user)
@@ -77,3 +78,13 @@ async def get_user_chats(db_session: AsyncSession, *, current_user: User) -> lis
     chats: list[Chat] = result.scalars().all()
 
     return chats
+
+
+async def get_paginated_chat_messages(db_session: AsyncSession, *, chat_id: int) -> list[Chat]:
+    query = (
+        select(Message)
+        .where(and_(Message.chat_id == chat_id, Message.is_active.is_(True)))
+        .order_by(Message.created_at.desc())
+        .options(selectinload(Message.user), selectinload(Message.chat))
+    )
+    return await paginate(db_session, query)

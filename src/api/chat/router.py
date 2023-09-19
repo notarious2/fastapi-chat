@@ -2,21 +2,24 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, status
-from fastapi_pagination import Page, paginate
+from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
+
 
 from src.api.chat.schemas import CreateDirectChatSchema, DisplayDirectChatSchema, GetChatsSchema, MessageSchema
 from src.api.chat.services import (
-    create_bob_emily_chat,
-    get_bob_emily_chat,
+    create_direct_chat,
+    get_direct_chat,
     get_chat_by_guid,
     get_user_by_guid,
     get_user_chats,
     send_message_to_chat,
+    get_paginated_chat_messages,
 )
 from src.database import get_async_session
 from src.dependencies import get_current_user
 from src.models import Chat, User
+
 
 # from fastapi_pagination.ext.sqlalchemy import paginate
 
@@ -24,7 +27,7 @@ chat_router = APIRouter(tags=["Chat Management"])
 
 
 @chat_router.post("/chat/direct/", summary="Get or create a direct chat", response_model=DisplayDirectChatSchema)
-async def get_or_create_bob_emily_chat(
+async def get_or_create_direct_chat(
     bob_emily_chat_schema: CreateDirectChatSchema,
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
@@ -40,10 +43,10 @@ async def get_or_create_bob_emily_chat(
         )
 
     # return chat if already exists
-    chat: Chat | None = await get_bob_emily_chat(db_session, initiator_user=current_user, recipient_user=recipient_user)
+    chat: Chat | None = await get_direct_chat(db_session, initiator_user=current_user, recipient_user=recipient_user)
 
     if not chat:
-        chat: Chat = await create_bob_emily_chat(db_session, initiator_user=current_user, recipient_user=recipient_user)
+        chat: Chat = await create_direct_chat(db_session, initiator_user=current_user, recipient_user=recipient_user)
 
     return chat
 
@@ -81,8 +84,7 @@ async def get_user_messages_in_chat(
     if current_user not in chat.users:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You don't have access to this chat")
 
-    # TODO: standard paginate/chat.messages fetches all messages, probably should messages separately
-    return paginate(chat.messages)
+    return await get_paginated_chat_messages(db_session, chat_id=chat.id)
 
 
 @chat_router.get("/chats/", summary="Get user's chats", response_model=list[GetChatsSchema])  #

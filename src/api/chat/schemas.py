@@ -5,6 +5,11 @@ from pydantic import UUID4, BaseModel
 from src.models import ChatType
 
 
+class ChatSchema(BaseModel):
+    guid: UUID4
+    chat_type: ChatType
+
+
 class CreateDirectChatSchema(BaseModel):
     recipient_user_guid: UUID4
 
@@ -21,6 +26,7 @@ class MessageSchema(BaseModel):
     content: str
     created_at: datetime
     user: UserSchema
+    chat: ChatSchema
 
 
 class DisplayDirectChatSchema(BaseModel):
