@@ -89,8 +89,7 @@ async def bob_user(db_session: AsyncSession) -> User:
 @pytest.fixture
 def authenticated_bob_client(async_client: AsyncClient, bob_user: User):
     access_token = create_access_token(subject=bob_user.email)
-    headers = {"Authorization": f"Bearer {access_token}"}
-    async_client.headers.update(headers)
+    async_client.cookies.update({"access_token": access_token})
 
     yield async_client
 
@@ -128,8 +127,7 @@ async def doug_user(db_session: AsyncSession) -> User:
 @pytest.fixture
 def authenticated_doug_client(async_client: AsyncClient, doug_user: User):
     access_token = create_access_token(subject=doug_user.email)
-    headers = {"Authorization": f"Bearer {access_token}"}
-    async_client.headers.update(headers)
+    async_client.cookies.update({"access_token": access_token})
 
     yield async_client
 

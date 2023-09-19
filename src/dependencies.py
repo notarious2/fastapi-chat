@@ -1,21 +1,20 @@
 import jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, HTTPException, status, Cookie
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.authentication.services import get_user_by_login_identifier
 from src.config import settings
 from src.database import get_async_session
 from src.models import User
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login/", scheme_name="JWT")  # important path to get token
+from typing import Annotated
 
 
 async def get_current_user(
-    db_session: AsyncSession = Depends(get_async_session), token: str = Depends(oauth2_scheme)
+    access_token: Annotated[str | None, Cookie()],
+    db_session: AsyncSession = Depends(get_async_session),
 ) -> User:
     try:
-        payload = jwt.decode(token, settings.JWT_ACCESS_SECRET_KEY, algorithms=[settings.ENCRYPTION_ALGORITHM])
+        payload = jwt.decode(access_token, settings.JWT_ACCESS_SECRET_KEY, algorithms=[settings.ENCRYPTION_ALGORITHM])
         login_identifier: str = payload.get("sub")
         if not login_identifier:
             raise HTTPException(
