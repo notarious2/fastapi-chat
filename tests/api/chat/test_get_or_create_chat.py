@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from src.models import Chat, ChatType, User
 
 
-async def test_get_or_create_bob_emily_chat_succeeds_given_no_chat_exists(
+async def test_get_or_create_direct_chat_succeeds_given_no_chat_exists(
     db_session: AsyncSession, authenticated_bob_client: AsyncClient, bob_user: User, emily_user: User
 ):
     url = "/chat/direct/"
@@ -49,7 +49,7 @@ async def test_get_or_create_bob_emily_chat_succeeds_given_no_chat_exists(
     assert {bob_user, emily_user} == set(chat.users)
 
 
-async def test_get_or_create_bob_emily_chat_succeeds_bob_emily_chat_exists(
+async def test_get_or_create_direct_chat_succeeds_bob_emily_chat_exists(
     db_session: AsyncSession, authenticated_bob_client: AsyncClient, bob_emily_chat: Chat, emily_user: User
 ):
     url = "/chat/direct/"
@@ -61,7 +61,7 @@ async def test_get_or_create_bob_emily_chat_succeeds_bob_emily_chat_exists(
     assert response.json()["guid"] == str(bob_emily_chat.guid)
 
 
-async def test_get_or_create_bob_emily_chat_fails_given_recipient_user_does_not_exist(
+async def test_get_or_create_direct_chat_fails_given_recipient_user_does_not_exist(
     db_session: AsyncSession,
     authenticated_bob_client: AsyncClient,
 ):

@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,4 +34,5 @@ async def login(
     return {
         "access_token": create_access_token(login_identifier),
         "refresh_token": create_refresh_token(login_identifier),
+        "username": user.username,
     }

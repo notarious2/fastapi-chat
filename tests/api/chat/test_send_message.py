@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.models import Chat, Message, User
 
 
-async def test_send_message_to_bob_emily_chat_succeeds_given_valid_data(
+async def test_send_message_to_direct_chat_succeeds_given_valid_data(
     db_session: AsyncSession, authenticated_bob_client: AsyncClient, bob_emily_chat: Chat, bob_user: User
 ):
     url = f"/chat/{bob_emily_chat.guid}/message/"
@@ -30,7 +30,7 @@ async def test_send_message_to_bob_emily_chat_succeeds_given_valid_data(
     assert message.chat_id == bob_emily_chat.id
 
 
-async def test_send_message_to_bob_emily_chat_fails_given_chat_does_not_exist(
+async def test_send_message_to_direct_chat_fails_given_chat_does_not_exist(
     db_session: AsyncSession, authenticated_bob_client: AsyncClient
 ):
     url = f"/chat/{uuid4()}/message/"
