@@ -42,3 +42,8 @@ class GetChatsSchema(BaseModel):
     created_at: datetime
     is_active: bool
     users: list[UserSchema]
+
+
+class GetOldMessagesSchema(BaseModel):
+    messages: list[MessageSchema]
+    has_more_messages: bool

@@ -1,14 +1,15 @@
+from datetime import datetime
 from uuid import UUID
 
+from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.models import Chat, ChatType, Message, User
-from fastapi_pagination.ext.sqlalchemy import paginate
 
 
-async def get_direct_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat:
+async def get_direct_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat | None:
     query = (
         select(Chat)
         .where(
@@ -38,7 +39,7 @@ async def create_direct_chat(db_session: AsyncSession, *, initiator_user: User, 
     return chat
 
 
-async def get_chat_by_guid(db_session: AsyncSession, *, chat_guid: UUID) -> Chat:
+async def get_chat_by_guid(db_session: AsyncSession, *, chat_guid: UUID) -> Chat | None:
     query = select(Chat).where(Chat.guid == chat_guid).options(selectinload(Chat.messages), selectinload(Chat.users))
     result = await db_session.execute(query)
     chat: Chat | None = result.scalar_one_or_none()
@@ -46,7 +47,7 @@ async def get_chat_by_guid(db_session: AsyncSession, *, chat_guid: UUID) -> Chat
     return chat
 
 
-async def get_user_by_guid(db_session: AsyncSession, *, user_guid: UUID) -> User:
+async def get_user_by_guid(db_session: AsyncSession, *, user_guid: UUID) -> User | None:
     query = select(User).where(User.guid == user_guid)
     result = await db_session.execute(query)
     user: User | None = result.scalar_one_or_none()
@@ -88,3 +89,47 @@ async def get_paginated_chat_messages(db_session: AsyncSession, *, chat_id: int)
         .options(selectinload(Message.user), selectinload(Message.chat))
     )
     return await paginate(db_session, query)
+
+
+async def get_active_message_by_guid_and_chat(
+    db_session: AsyncSession, *, chat_id: int, message_guid: UUID
+) -> Message | None:
+    query = select(Message).where(
+        and_(Message.guid == message_guid, Message.is_active.is_(True), Message.chat_id == chat_id)
+    )
+
+    result = await db_session.execute(query)
+    message: Message | None = result.scalar_one_or_none()
+
+    return message
+
+
+async def get_older_chat_messages(
+    db_session: AsyncSession,
+    *,
+    chat_id: int,
+    limit: int = 10,
+    created_at: datetime,
+) -> tuple[list[Message], bool]:
+    query = (
+        select(Message)
+        .where(
+            and_(
+                Message.chat_id == chat_id,
+                Message.is_active.is_(True),
+                Message.created_at < created_at,
+            )
+        )
+        .order_by(Message.created_at.desc())
+        .limit(limit + 1)  # Fetch limit + 1 messages
+        .options(selectinload(Message.user), selectinload(Message.chat))
+    )
+
+    result = await db_session.execute(query)
+    older_messages: list[Message] = result.scalars().all()
+
+    # Determine if there are more messages
+    has_more_messages = len(older_messages) > limit
+
+    # Return the first 'limit' messages and a flag indicating if there are more
+    return older_messages[:limit], has_more_messages

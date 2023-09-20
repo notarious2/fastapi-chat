@@ -1,18 +1,15 @@
 import logging
 from json.decoder import JSONDecodeError
 
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.database import get_async_session
-from src.services.websocket_manager import WebSocketManager
-from src.dependencies import get_current_user
-from src.models import User, Message, Chat
-from src.api.websocket.schemas import ReceiveMessageSchema, SendMessageSchema
 from src.api.chat.services import get_chat_by_guid
-
-from typing import Annotated
-from uuid import UUID
+from src.api.websocket.schemas import ReceiveMessageSchema, SendMessageSchema
+from src.database import get_async_session
+from src.dependencies import get_current_user
+from src.models import Chat, Message, User
+from src.services.websocket_manager import WebSocketManager
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +22,13 @@ socket_manager = WebSocketManager()
 @websocket_router.websocket("/ws/")
 async def websocket_endpoint(
     websocket: WebSocket,
-    chat_guid: Annotated[UUID | None, Query()] = None,
     current_user: User = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_async_session),
 ):
     await socket_manager.connect_socket(websocket=websocket)
-    await websocket.send_json({"message": "You are connected", "user": "Bekzod"})
+    # await websocket.send_json(
+    #     {"type": "system", "content": f"{current_user.username} connected", "username": current_user.username}
+    # )
 
     # keep track of open redis pub/sub channels holds guid/id key-value pairs
     chats = dict()
@@ -45,6 +43,14 @@ async def websocket_endpoint(
                     chat_guid = incoming_message["chatGUID"]
                     # create channel and subscribe
                     await socket_manager.add_user_to_chat(chat_guid, websocket)
+                    await socket_manager.broadcast_to_chat(
+                        chat_guid,
+                        {
+                            "type": "system",
+                            "content": f"{current_user.username} connected",
+                            "username": current_user.username,
+                        },
+                    )
 
                 else:
                     message_schema = ReceiveMessageSchema(**incoming_message)
@@ -88,4 +94,11 @@ async def websocket_endpoint(
     except WebSocketDisconnect:
         for chat_guid in chats.keys():
             await socket_manager.remove_user_from_chat(chat_guid, websocket)
-            await socket_manager.broadcast_to_chat(chat_guid, {"message": "user disconnected"})
+            await socket_manager.broadcast_to_chat(
+                chat_guid,
+                {
+                    "type": "system",
+                    "content": f"{current_user.username} disconnected",
+                    "username": current_user.username,
+                },
+            )
