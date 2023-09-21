@@ -7,6 +7,7 @@ from src.config import settings
 from src.database import get_async_session
 from src.models import User
 from typing import Annotated
+import redis.asyncio as aioredis
 
 
 async def get_current_user(
@@ -50,3 +51,12 @@ async def get_current_user(
         )
 
     return user
+
+
+pool = aioredis.ConnectionPool(
+    host=settings.redis_host, port=settings.redis_port, password=settings.redis_password, db=1
+)
+
+
+async def get_cache() -> aioredis.Redis:
+    return await aioredis.Redis(connection_pool=pool)

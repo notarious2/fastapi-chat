@@ -2,6 +2,7 @@ import asyncio
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.models import User
 from src.utils import verify_password
@@ -24,7 +25,11 @@ async def authenticate_user(db_session: AsyncSession, login_identifier: str, pas
 
 
 async def get_user_by_login_identifier(db_session: AsyncSession, *, login_identifier: str) -> User | None:
-    query = select(User).where(or_(User.email == login_identifier, User.username == login_identifier))
+    query = (
+        select(User)
+        .where(or_(User.email == login_identifier, User.username == login_identifier))
+        .options(selectinload(User.chats))
+    )
     result = await db_session.execute(query)
     user: User | None = result.scalar_one_or_none()
 
