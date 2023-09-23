@@ -40,6 +40,7 @@ class GetChatsSchema(BaseModel):
     guid: UUID4
     chat_type: ChatType
     created_at: datetime
+    updated_at: datetime
     is_active: bool
     users: list[UserSchema]
 

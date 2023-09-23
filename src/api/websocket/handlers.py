@@ -1,10 +1,13 @@
 import logging
+from datetime import datetime
 
+import redis.asyncio as aioredis
 from fastapi import WebSocket
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.chat.services import get_chat_by_guid
 from src.api.websocket.schemas import ReceiveMessageSchema, SendMessageSchema
+from src.api.websocket.services import mark_user_as_online
 from src.models import Chat, Message, User
 from src.services.websocket_manager import WebSocketManager
 
@@ -31,7 +34,7 @@ async def get_chat_handler(
         if not chat:
             logger.exception(f"Could not find chat with provided guid: {chat_guid}")
             await socket_manager.send_error(f"Chat with guid {chat_guid} does not exist", websocket)
-    chats[chat_guid] = chat.id
+        chats[chat_guid] = chat.id
 
     # create channel and subscribe
     await socket_manager.add_user_to_chat(chat_guid, websocket)
@@ -49,6 +52,7 @@ async def get_chat_handler(
 async def new_message_handler(
     websocket: WebSocket,
     db_session: AsyncSession,
+    cache: aioredis.Redis,
     incoming_message: dict,
     chats: dict,
     current_user: User,
@@ -70,8 +74,15 @@ async def new_message_handler(
     )
     db_session.add(message)
 
+    # Update the updated_at field of the chat
+    chat = await db_session.get(Chat, chat_id)
+    chat.updated_at = datetime.now()
+    db_session.add(chat)
+
     await db_session.commit()
     await db_session.refresh(message, attribute_names=["user", "chat"])
+
+    await mark_user_as_online(cache, current_user)
 
     send_message_schema = SendMessageSchema.model_validate(message, from_attributes=True)
     outgoing_message: dict = send_message_schema.model_dump_json()
