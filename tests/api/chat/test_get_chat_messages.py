@@ -15,6 +15,23 @@ async def test_get_messages_succeeds_given_existing_chat_with_messages(
 
     assert response.status_code == status.HTTP_200_OK
     assert len(response.json()) == 20
+    assert set(response.json()[0].keys()) == {"guid", "content", "created_at", "user", "chat", "is_read"}
+
+
+async def test_get_messages_succeeds_given_existing_chat_with_messages_and_read_status_for_bob(
+    authenticated_bob_client: AsyncClient,
+    bob_emily_chat: Chat,
+    bob_emily_chat_messages_history: list[Chat],
+    bob_read_status,
+):
+    url = f"/chat/{bob_emily_chat.guid}/messages/"
+
+    response = await authenticated_bob_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    messages = response.json()
+    assert len(messages) == 20
+    assert sum([message["is_read"] for message in messages]) == 10  # half of messages are read
 
 
 async def test_get_messages_succeeds_given_existing_chat_with_messages_and_size(

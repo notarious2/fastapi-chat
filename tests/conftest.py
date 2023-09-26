@@ -13,7 +13,7 @@ from src.api.authentication.utils import create_access_token
 from src.config import settings
 from src.database import get_async_session, metadata
 from src.main import app
-from src.models import Chat, ChatType, Message, User
+from src.models import Chat, ChatType, Message, ReadStatus, User
 from src.utils import get_hashed_password
 
 DATABASE_URL_TEST = (
@@ -161,9 +161,9 @@ async def bob_emily_chat_messages_history(
     await db_session.refresh(bob_emily_chat, attribute_names=["messages"])
     Bob = True
     sender_id = bob_user.id if Bob else emily_user.id
-    sender_name = "Bob" if Bob else "Emily"
 
     for i in range(1, 21):
+        sender_name = "Bob" if Bob else "Emily"
         message = Message(
             content=f"#{i} message sent by {sender_name}",
             user_id=sender_id,
@@ -177,3 +177,15 @@ async def bob_emily_chat_messages_history(
     await db_session.commit()
 
     return bob_emily_chat.messages
+
+
+@pytest.fixture
+async def bob_read_status(db_session, bob_user, bob_emily_chat_messages_history):
+    last_read_message = bob_emily_chat_messages_history[9]
+    read_status = ReadStatus(
+        user_id=bob_user.id, chat_id=last_read_message.chat.id, last_read_message_id=last_read_message.id
+    )
+    db_session.add(read_status)
+    await db_session.commit()
+
+    return read_status

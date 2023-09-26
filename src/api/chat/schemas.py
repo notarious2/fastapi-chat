@@ -27,6 +27,7 @@ class MessageSchema(BaseModel):
     created_at: datetime
     user: UserSchema
     chat: ChatSchema
+    is_read: bool | None = False
 
 
 class DisplayDirectChatSchema(BaseModel):

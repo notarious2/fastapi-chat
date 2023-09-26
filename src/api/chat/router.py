@@ -88,8 +88,8 @@ async def get_user_messages_in_chat(
     if current_user not in chat.users:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You don't have access to this chat")
 
-    # TODO: find am effective way to modify Page response
-    return await get_chat_messages(db_session, chat_id=chat.id, size=size)
+    # TODO: find an effective way to modify Page response
+    return await get_chat_messages(db_session, user_id=current_user.id, chat_id=chat.id, size=size)
 
 
 @chat_router.get("/chats/", summary="Get user's chats", response_model=list[GetChatsSchema])  #
