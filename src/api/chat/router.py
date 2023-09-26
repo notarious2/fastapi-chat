@@ -1,8 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
-from fastapi_pagination import Page
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.chat.schemas import (
@@ -16,9 +15,9 @@ from src.api.chat.services import (
     create_direct_chat,
     get_active_message_by_guid_and_chat,
     get_chat_by_guid,
+    get_chat_messages,
     get_direct_chat,
     get_older_chat_messages,
-    get_paginated_chat_messages,
     get_user_by_guid,
     get_user_chats,
     send_message_to_chat,
@@ -26,8 +25,6 @@ from src.api.chat.services import (
 from src.database import get_async_session
 from src.dependencies import get_current_user
 from src.models import Chat, Message, User
-
-# from fastapi_pagination.ext.sqlalchemy import paginate
 
 chat_router = APIRouter(tags=["Chat Management"])
 
@@ -75,10 +72,11 @@ async def send_message(
 
 
 @chat_router.get(
-    "/chat/{chat_guid}/messages/", summary="Get user's chat messages", response_model=Page[MessageSchema]
+    "/chat/{chat_guid}/messages/", summary="Get user's chat messages", response_model=list[MessageSchema]
 )  #
 async def get_user_messages_in_chat(
     chat_guid: UUID,
+    size: Annotated[int | None, Query(gt=0, lt=200)] = 20,
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -91,7 +89,7 @@ async def get_user_messages_in_chat(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You don't have access to this chat")
 
     # TODO: find am effective way to modify Page response
-    return await get_paginated_chat_messages(db_session, chat_id=chat.id)
+    return await get_chat_messages(db_session, chat_id=chat.id, size=size)
 
 
 @chat_router.get("/chats/", summary="Get user's chats", response_model=list[GetChatsSchema])  #

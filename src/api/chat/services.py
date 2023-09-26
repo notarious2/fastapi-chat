@@ -1,7 +1,6 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -81,14 +80,17 @@ async def get_user_chats(db_session: AsyncSession, *, current_user: User) -> lis
     return chats
 
 
-async def get_paginated_chat_messages(db_session: AsyncSession, *, chat_id: int) -> list[Chat]:
+async def get_chat_messages(db_session: AsyncSession, *, chat_id: int, size: int) -> list[Chat]:
     query = (
         select(Message)
         .where(and_(Message.chat_id == chat_id, Message.is_active.is_(True)))
         .order_by(Message.created_at.desc())
+        .limit(size)
         .options(selectinload(Message.user), selectinload(Message.chat))
     )
-    return await paginate(db_session, query)
+    result = await db_session.execute(query)
+    messages: list[Chat] = result.scalars().all()
+    return messages
 
 
 async def get_active_message_by_guid_and_chat(

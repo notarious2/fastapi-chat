@@ -1,4 +1,3 @@
-from unittest import mock
 from uuid import uuid4
 
 from fastapi import status
@@ -15,8 +14,18 @@ async def test_get_messages_succeeds_given_existing_chat_with_messages(
     response = await authenticated_bob_client.get(url)
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"items": mock.ANY, "total": 20, "page": 1, "size": 50, "pages": 1}
-    assert len(response.json()["items"]) == 20
+    assert len(response.json()) == 20
+
+
+async def test_get_messages_succeeds_given_existing_chat_with_messages_and_size(
+    authenticated_bob_client: AsyncClient, bob_emily_chat: Chat, bob_emily_chat_messages_history: list[Chat]
+):
+    url = f"/chat/{bob_emily_chat.guid}/messages/"
+
+    response = await authenticated_bob_client.get(url, params={"size": 10})
+
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.json()) == 10
 
 
 async def test_get_messages_succeeds_given_existing_chat_without_messages(
@@ -27,7 +36,7 @@ async def test_get_messages_succeeds_given_existing_chat_without_messages(
     response = await authenticated_bob_client.get(url)
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"items": [], "total": 0, "page": 1, "size": 50, "pages": 0}
+    assert response.json() == []
 
 
 async def test_get_messages_fails_given_chat_does_not_exist(authenticated_bob_client: AsyncClient):
