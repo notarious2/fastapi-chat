@@ -49,3 +49,15 @@ class GetChatsSchema(BaseModel):
 class GetOldMessagesSchema(BaseModel):
     messages: list[MessageSchema]
     has_more_messages: bool
+
+
+class LastReadMessageSchema(BaseModel):
+    guid: str
+    content: str
+    created_at: datetime
+
+
+class GetMessagesSchema(BaseModel):
+    messages: list[MessageSchema]
+    has_more_messages: bool
+    last_read_message: LastReadMessageSchema = None

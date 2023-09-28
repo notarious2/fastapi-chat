@@ -15,3 +15,9 @@ class SendMessageSchema(MessageSchema):
 
     class Config:
         from_attributes = True
+
+
+class MessageReadSchema(BaseModel):
+    type: str
+    chat_guid: UUID4
+    message_guid: UUID4

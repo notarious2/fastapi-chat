@@ -37,7 +37,9 @@ class BaseModel(DeclarativeBase):
         return {field.name: getattr(self, field.name) for field in self.__table__.c}
 
 
-engine = create_async_engine(DATABASE_URL)
+engine = create_async_engine(
+    DATABASE_URL, pool_size=40, max_overflow=20, pool_recycle=3600, isolation_level="AUTOCOMMIT"
+)
 async_session_maker = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 

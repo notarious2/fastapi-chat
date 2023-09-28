@@ -40,6 +40,7 @@ async def login(
         "access_token": create_access_token(login_identifier),
         "refresh_token": create_refresh_token(login_identifier),
         "username": user.username,
+        "user_guid": user.guid,
     }
 
 

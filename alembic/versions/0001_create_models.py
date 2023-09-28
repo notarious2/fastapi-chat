@@ -92,7 +92,7 @@ def upgrade() -> None:
     op.create_table(
         "read_status",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("last_read_message_id", sa.Integer(), nullable=False),
+        sa.Column("last_read_message_id", sa.Integer(), nullable=True),
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("chat_id", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(

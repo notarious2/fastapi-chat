@@ -6,8 +6,8 @@ from fastapi import WebSocket
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.chat.services import get_chat_by_guid
-from src.api.websocket.schemas import ReceiveMessageSchema, SendMessageSchema
-from src.api.websocket.services import mark_user_as_online
+from src.api.websocket.schemas import MessageReadSchema, ReceiveMessageSchema, SendMessageSchema
+from src.api.websocket.services import get_message_by_guid, mark_last_read_message, mark_user_as_online
 from src.models import Chat, Message, User
 from src.services.websocket_manager import WebSocketManager
 
@@ -86,4 +86,43 @@ async def new_message_handler(
 
     send_message_schema = SendMessageSchema.model_validate(message, from_attributes=True)
     outgoing_message: dict = send_message_schema.model_dump_json()
+    await socket_manager.broadcast_to_chat(chat_guid, outgoing_message)
+
+
+@socket_manager.handler("message_read")
+async def message_read_handler(
+    websocket: WebSocket,
+    db_session: AsyncSession,
+    incoming_message: dict,
+    chats: dict,
+    current_user: User,
+    **kwargs,
+):
+    message_read_schema = MessageReadSchema(**incoming_message)
+
+    message_guid = str(message_read_schema.message_guid)
+    message: Message | None = await get_message_by_guid(db_session, message_guid=message_guid)
+    if not message:
+        await socket_manager.send_error(
+            f"[read_status] Message with provided guid [{message_guid}] does not exist", websocket
+        )
+
+    chat_guid = str(message_read_schema.chat_guid)
+    if chat_guid not in chats:
+        await socket_manager.send_error(
+            f"[read_status] Chat with provided guid [{message_guid}] does not exist", websocket
+        )
+        return
+    chat_id = chats.get(chat_guid)
+
+    await mark_last_read_message(db_session, user_id=current_user.id, chat_id=chat_id, last_read_message_id=message.id)
+
+    outgoing_message = {
+        "type": "message_read",
+        "user_guid": str(current_user.guid),
+        "chat_guid": str(chat_guid),
+        "last_read_message_guid": str(message.guid),
+        "last_read_message_created_at": str(message.created_at),
+    }
+
     await socket_manager.broadcast_to_chat(chat_guid, outgoing_message)

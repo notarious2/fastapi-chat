@@ -70,6 +70,7 @@ async def get_user_chats(db_session: AsyncSession, *, current_user: User) -> lis
         .where(
             and_(
                 Chat.users.contains(current_user),
+                Chat.is_active.is_(True),
             )
         )
         .options(selectinload(Chat.users))
@@ -81,26 +82,39 @@ async def get_user_chats(db_session: AsyncSession, *, current_user: User) -> lis
     return chats
 
 
-async def get_chat_messages(db_session: AsyncSession, *, user_id: int, chat_id: int, size: int) -> list[Chat]:
+async def get_chat_messages(
+    db_session: AsyncSession, *, user_id: int, chat: Chat, size: int
+) -> tuple[list[Chat], bool, Message | None]:
     query = (
         select(Message)
-        .where(and_(Message.chat_id == chat_id, Message.is_active.is_(True)))
+        .where(and_(Message.chat_id == chat.id, Message.is_active.is_(True)))
         .order_by(Message.created_at.desc())
-        .limit(size)
+        .limit(size + 1)
         .options(selectinload(Message.user), selectinload(Message.chat))
     )
     result = await db_session.execute(query)
-    messages: list[Chat] = result.scalars().all()
+    messages: list[Message] = result.scalars().all()
+    # check if there are more messages
+    has_more_messages = len(messages) > size
+    messages = messages[:size]
 
-    # get read statuses for user messages in a chat
+    # get read statuses for another user in a chat
+    other_user_ids = [user.id for user in chat.users if user.id != user_id]
+
+    if not other_user_ids or len(other_user_ids) != 1:
+        raise ValueError("There are no users in the chat or more than one user")
+    (other_user_id,) = other_user_ids
+
     result = await db_session.execute(
-        select(ReadStatus).where(and_(ReadStatus.user_id == user_id, ReadStatus.chat_id == chat_id))
+        select(ReadStatus).where(and_(ReadStatus.user_id == other_user_id, ReadStatus.chat_id == chat.id))
     )
     read_status = result.scalar_one_or_none()
     if not read_status:
-        return messages  # no read status for user/chat #TODO: Add logs
+        message_schemas = [MessageSchema.model_validate(message, from_attributes=True) for message in messages]
+        return message_schemas, has_more_messages, None  # no read status for user/chat #TODO: Add logs
 
     last_read_message_id = read_status.last_read_message_id
+    last_read_message = await db_session.get(Message, last_read_message_id)
 
     message_schemas = [
         MessageSchema(
@@ -114,7 +128,7 @@ async def get_chat_messages(db_session: AsyncSession, *, user_id: int, chat_id: 
         for message in messages
     ]
 
-    return message_schemas
+    return message_schemas, has_more_messages, last_read_message
 
 
 async def get_active_message_by_guid_and_chat(

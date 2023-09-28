@@ -8,8 +8,8 @@ from src.api.chat.schemas import (
     CreateDirectChatSchema,
     DisplayDirectChatSchema,
     GetChatsSchema,
+    GetMessagesSchema,
     GetOldMessagesSchema,
-    MessageSchema,
 )
 from src.api.chat.services import (
     create_direct_chat,
@@ -71,9 +71,7 @@ async def send_message(
     return "Message has been sent"
 
 
-@chat_router.get(
-    "/chat/{chat_guid}/messages/", summary="Get user's chat messages", response_model=list[MessageSchema]
-)  #
+@chat_router.get("/chat/{chat_guid}/messages/", summary="Get user's chat messages")  #
 async def get_user_messages_in_chat(
     chat_guid: UUID,
     size: Annotated[int | None, Query(gt=0, lt=200)] = 20,
@@ -89,7 +87,13 @@ async def get_user_messages_in_chat(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You don't have access to this chat")
 
     # TODO: find an effective way to modify Page response
-    return await get_chat_messages(db_session, user_id=current_user.id, chat_id=chat.id, size=size)
+    messages, has_more_messages, last_read_message = await get_chat_messages(
+        db_session, user_id=current_user.id, chat=chat, size=size
+    )
+    response = GetMessagesSchema(messages=messages, has_more_messages=has_more_messages)
+    if last_read_message:
+        response.last_read_message = last_read_message
+    return response
 
 
 @chat_router.get("/chats/", summary="Get user's chats", response_model=list[GetChatsSchema])  #

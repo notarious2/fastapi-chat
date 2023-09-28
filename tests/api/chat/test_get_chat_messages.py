@@ -1,3 +1,4 @@
+from unittest import mock
 from uuid import uuid4
 
 from fastapi import status
@@ -14,8 +15,10 @@ async def test_get_messages_succeeds_given_existing_chat_with_messages(
     response = await authenticated_bob_client.get(url)
 
     assert response.status_code == status.HTTP_200_OK
-    assert len(response.json()) == 20
-    assert set(response.json()[0].keys()) == {"guid", "content", "created_at", "user", "chat", "is_read"}
+    assert response.json() == {"messages": mock.ANY, "has_more_messages": False}
+    messages = response.json()["messages"]
+    assert len(messages) == 20
+    assert set(messages[0].keys()) == {"guid", "content", "created_at", "user", "chat", "is_read"}
 
 
 async def test_get_messages_succeeds_given_existing_chat_with_messages_and_read_status_for_bob(
@@ -29,7 +32,8 @@ async def test_get_messages_succeeds_given_existing_chat_with_messages_and_read_
     response = await authenticated_bob_client.get(url)
 
     assert response.status_code == status.HTTP_200_OK
-    messages = response.json()
+    assert response.json() == {"has_more_messages": False, "messages": mock.ANY}
+    messages = response.json()["messages"]
     assert len(messages) == 20
     assert sum([message["is_read"] for message in messages]) == 10  # half of messages are read
 
@@ -42,7 +46,8 @@ async def test_get_messages_succeeds_given_existing_chat_with_messages_and_size(
     response = await authenticated_bob_client.get(url, params={"size": 10})
 
     assert response.status_code == status.HTTP_200_OK
-    assert len(response.json()) == 10
+    assert response.json() == {"messages": mock.ANY, "has_more_messages": True}
+    assert len(response.json()["messages"]) == 10
 
 
 async def test_get_messages_succeeds_given_existing_chat_without_messages(
@@ -53,7 +58,7 @@ async def test_get_messages_succeeds_given_existing_chat_without_messages(
     response = await authenticated_bob_client.get(url)
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == []
+    assert response.json() == {"messages": [], "has_more_messages": False}
 
 
 async def test_get_messages_fails_given_chat_does_not_exist(authenticated_bob_client: AsyncClient):

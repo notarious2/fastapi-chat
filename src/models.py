@@ -70,7 +70,7 @@ class ReadStatus(RemoveBaseFieldsMixin, BaseModel):
     __tablename__ = "read_status"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    last_read_message_id: Mapped[int] = mapped_column()
+    last_read_message_id: Mapped[int] = mapped_column(nullable=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     chat_id: Mapped[int] = mapped_column(ForeignKey("chat.id"))
 
