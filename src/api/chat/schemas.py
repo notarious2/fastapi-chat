@@ -20,6 +20,9 @@ class UserSchema(BaseModel):
     last_name: str
     username: str
 
+    class Config:
+        from_attributes = True
+
 
 class MessageSchema(BaseModel):
     guid: UUID4
@@ -28,6 +31,7 @@ class MessageSchema(BaseModel):
     user: UserSchema
     chat: ChatSchema
     is_read: bool | None = False
+    is_new: bool | None = True
 
 
 class DisplayDirectChatSchema(BaseModel):
@@ -37,18 +41,17 @@ class DisplayDirectChatSchema(BaseModel):
     users: list[UserSchema]
 
 
-class GetChatsSchema(BaseModel):
-    guid: UUID4
+class GetChatSchema(BaseModel):
+    chat_guid: UUID4
     chat_type: ChatType
     created_at: datetime
     updated_at: datetime
-    is_active: bool
     users: list[UserSchema]
+    has_new_messages: bool
+    new_messages_count: int
 
-
-class GetOldMessagesSchema(BaseModel):
-    messages: list[MessageSchema]
-    has_more_messages: bool
+    class Config:
+        from_attributes = True
 
 
 class LastReadMessageSchema(BaseModel):
@@ -57,7 +60,22 @@ class LastReadMessageSchema(BaseModel):
     created_at: datetime
 
 
+class GetMessageSchema(BaseModel):
+    message_guid: UUID4
+    user_guid: UUID4
+    chat_guid: UUID4
+    content: str
+    created_at: datetime
+    is_read: bool | None = False
+    is_new: bool | None = True
+
+
 class GetMessagesSchema(BaseModel):
-    messages: list[MessageSchema]
+    messages: list[GetMessageSchema]
     has_more_messages: bool
     last_read_message: LastReadMessageSchema = None
+
+
+class GetOldMessagesSchema(BaseModel):
+    messages: list[GetMessageSchema]
+    has_more_messages: bool

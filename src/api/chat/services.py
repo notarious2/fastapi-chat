@@ -1,11 +1,11 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.api.chat.schemas import MessageSchema
+from src.api.chat.schemas import GetChatSchema, GetMessageSchema
 from src.models import Chat, ChatType, Message, ReadStatus, User
 
 
@@ -30,17 +30,27 @@ async def get_direct_chat(db_session: AsyncSession, *, initiator_user: User, rec
 
 
 async def create_direct_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat:
+    # TODO: Make it an atomic transaction
     chat = Chat(chat_type=ChatType.DIRECT)
     chat.users.append(initiator_user)
     chat.users.append(recipient_user)
     db_session.add(chat)
+    await db_session.flush()
+    # make empty read statuses for both users last_read_message_id = 0
+    initiator_read_status = ReadStatus(chat_id=chat.id, user_id=initiator_user.id, last_read_message_id=0)
+    recipient_read_status = ReadStatus(chat_id=chat.id, user_id=recipient_user.id, last_read_message_id=0)
+    db_session.add_all([initiator_read_status, recipient_read_status])
     await db_session.commit()
 
     return chat
 
 
 async def get_chat_by_guid(db_session: AsyncSession, *, chat_guid: UUID) -> Chat | None:
-    query = select(Chat).where(Chat.guid == chat_guid).options(selectinload(Chat.messages), selectinload(Chat.users))
+    query = (
+        select(Chat)
+        .where(Chat.guid == chat_guid)
+        .options(selectinload(Chat.messages), selectinload(Chat.users), selectinload(Chat.read_statuses))
+    )
     result = await db_session.execute(query)
     chat: Chat | None = result.scalar_one_or_none()
 
@@ -73,7 +83,7 @@ async def get_user_chats(db_session: AsyncSession, *, current_user: User) -> lis
                 Chat.is_active.is_(True),
             )
         )
-        .options(selectinload(Chat.users))
+        .options(selectinload(Chat.users), selectinload(Chat.read_statuses))
     )
     result = await db_session.execute(query)
 
@@ -98,37 +108,28 @@ async def get_chat_messages(
     has_more_messages = len(messages) > size
     messages = messages[:size]
 
-    # get read statuses for another user in a chat
-    other_user_ids = [user.id for user in chat.users if user.id != user_id]
+    # assuming only two read statuses
+    for read_status in chat.read_statuses:
+        if read_status.user_id == user_id:
+            my_last_read_message_id = read_status.last_read_message_id
+        else:
+            other_last_read_message_id = read_status.last_read_message_id
 
-    if not other_user_ids or len(other_user_ids) != 1:
-        raise ValueError("There are no users in the chat or more than one user")
-    (other_user_id,) = other_user_ids
-
-    result = await db_session.execute(
-        select(ReadStatus).where(and_(ReadStatus.user_id == other_user_id, ReadStatus.chat_id == chat.id))
-    )
-    read_status = result.scalar_one_or_none()
-    if not read_status:
-        message_schemas = [MessageSchema.model_validate(message, from_attributes=True) for message in messages]
-        return message_schemas, has_more_messages, None  # no read status for user/chat #TODO: Add logs
-
-    last_read_message_id = read_status.last_read_message_id
-    last_read_message = await db_session.get(Message, last_read_message_id)
-
-    message_schemas = [
-        MessageSchema(
-            guid=message.guid,
+    last_read_message = await db_session.get(Message, my_last_read_message_id)
+    get_message_schemas = [
+        GetMessageSchema(
+            message_guid=message.guid,
             content=message.content,
             created_at=message.created_at,
-            chat=message.chat.to_dict(),
-            user=message.user.to_dict(),
-            is_read=message.id <= last_read_message_id,
+            chat_guid=message.chat.guid,
+            user_guid=message.user.guid,
+            is_read=message.id <= other_last_read_message_id,
+            is_new=message.id > my_last_read_message_id,
         )
         for message in messages
     ]
 
-    return message_schemas, has_more_messages, last_read_message
+    return get_message_schemas, has_more_messages, last_read_message
 
 
 async def get_active_message_by_guid_and_chat(
@@ -147,7 +148,8 @@ async def get_active_message_by_guid_and_chat(
 async def get_older_chat_messages(
     db_session: AsyncSession,
     *,
-    chat_id: int,
+    chat: Chat,
+    user_id: int,
     limit: int = 10,
     created_at: datetime,
 ) -> tuple[list[Message], bool]:
@@ -155,7 +157,7 @@ async def get_older_chat_messages(
         select(Message)
         .where(
             and_(
-                Message.chat_id == chat_id,
+                Message.chat_id == chat.id,
                 Message.is_active.is_(True),
                 Message.created_at < created_at,
             )
@@ -170,6 +172,58 @@ async def get_older_chat_messages(
 
     # Determine if there are more messages
     has_more_messages = len(older_messages) > limit
+    older_messages = older_messages[:limit]
+
+    # assuming only two read statuses
+    for read_status in chat.read_statuses:
+        if read_status.user_id == user_id:
+            my_last_read_message_id = read_status.last_read_message_id
+        else:
+            other_last_read_message_id = read_status.last_read_message_id
+
+    get_message_schemas = [
+        GetMessageSchema(
+            message_guid=message.guid,
+            content=message.content,
+            created_at=message.created_at,
+            chat_guid=message.chat.guid,
+            user_guid=message.user.guid,
+            is_read=message.id <= other_last_read_message_id,
+            is_new=message.id > my_last_read_message_id,
+        )
+        for message in older_messages
+    ]
 
     # Return the first 'limit' messages and a flag indicating if there are more
-    return older_messages[:limit], has_more_messages
+    return get_message_schemas, has_more_messages
+
+
+async def add_read_status_to_chat(db_session: AsyncSession, *, current_user: User, chat: Chat) -> tuple[bool, int]:
+    has_new_messages: bool = False
+    new_messages_count: int
+
+    # assuming chat has two read statuses
+    for read_status in chat.read_statuses:
+        # own read status -> for new messages
+        if read_status.user_id == current_user.id:
+            own_last_read_message_id = read_status.last_read_message_id
+
+    # get all user's active messages that have smaller last_read_message_id
+    new_messages_query = select(func.count()).where(
+        and_(Message.user_id != current_user.id, Message.id > own_last_read_message_id, Message.is_active.is_(True))
+    )
+    result = await db_session.execute(new_messages_query)
+    new_messages_count: int = result.scalar_one_or_none()
+
+    if new_messages_count:
+        has_new_messages = True
+
+    return GetChatSchema(
+        chat_guid=chat.guid,
+        chat_type=chat.chat_type,
+        created_at=chat.created_at,
+        updated_at=chat.updated_at,
+        users=chat.users,
+        has_new_messages=has_new_messages,
+        new_messages_count=new_messages_count,
+    )

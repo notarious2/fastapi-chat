@@ -7,11 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.api.chat.schemas import (
     CreateDirectChatSchema,
     DisplayDirectChatSchema,
-    GetChatsSchema,
+    GetChatSchema,
     GetMessagesSchema,
     GetOldMessagesSchema,
 )
 from src.api.chat.services import (
+    add_read_status_to_chat,
     create_direct_chat,
     get_active_message_by_guid_and_chat,
     get_chat_by_guid,
@@ -90,30 +91,33 @@ async def get_user_messages_in_chat(
     messages, has_more_messages, last_read_message = await get_chat_messages(
         db_session, user_id=current_user.id, chat=chat, size=size
     )
-    response = GetMessagesSchema(messages=messages, has_more_messages=has_more_messages)
+    response = GetMessagesSchema(
+        messages=messages,
+        has_more_messages=has_more_messages,
+    )
     if last_read_message:
         response.last_read_message = last_read_message
     return response
 
 
-@chat_router.get("/chats/", summary="Get user's chats", response_model=list[GetChatsSchema])  #
+@chat_router.get("/chats/", summary="Get user's chats", response_model=list[GetChatSchema])
 async def get_user_chats_view(
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
 ):
     chats: list[Chat] = await get_user_chats(db_session, current_user=current_user)
 
-    return chats
+    return [await add_read_status_to_chat(db_session, current_user=current_user, chat=chat) for chat in chats]
 
 
 @chat_router.get(
     "/chat/{chat_guid}/messages/old/{message_guid}/",
-    summary="Get user's chat messages",
-    response_model=GetOldMessagesSchema,
+    summary="Get user's historical chat messages",
 )
 async def get_older_messages(
     chat_guid: UUID,
     message_guid: UUID,
+    limit: Annotated[int | None, Query(gt=0, lt=200)] = 10,
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -133,7 +137,6 @@ async def get_older_messages(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message with provided guid is not found")
 
     old_messages, has_more_messages = await get_older_chat_messages(
-        db_session, chat_id=chat.id, created_at=message.created_at
+        db_session, chat=chat, user_id=current_user.id, created_at=message.created_at, limit=limit
     )
-
-    return {"messages": old_messages, "has_more_messages": has_more_messages}
+    return GetOldMessagesSchema(messages=old_messages, has_more_messages=has_more_messages)

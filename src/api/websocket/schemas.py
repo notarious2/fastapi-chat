@@ -1,20 +1,25 @@
-from pydantic import UUID4, BaseModel
+from datetime import datetime
 
-from src.api.chat.schemas import MessageSchema
+from pydantic import UUID4, BaseModel
 
 # TODO: Add data validation
 
 
 class ReceiveMessageSchema(BaseModel):
+    user_guid: UUID4
     chat_guid: UUID4
     content: str
 
 
-class SendMessageSchema(MessageSchema):
+class SendMessageSchema(BaseModel):
     type: str = "new"
-
-    class Config:
-        from_attributes = True
+    message_guid: UUID4
+    user_guid: UUID4
+    chat_guid: UUID4
+    content: str
+    created_at: datetime
+    is_read: bool | None = False
+    is_new: bool | None = True
 
 
 class MessageReadSchema(BaseModel):

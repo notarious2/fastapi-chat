@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.chat.services import get_chat_by_guid
 from src.api.websocket.schemas import MessageReadSchema, ReceiveMessageSchema, SendMessageSchema
-from src.api.websocket.services import get_message_by_guid, mark_last_read_message, mark_user_as_online
-from src.models import Chat, Message, User
+from src.api.websocket.services import get_message_by_guid, get_read_status, mark_last_read_message, mark_user_as_online
+from src.models import Chat, Message, ReadStatus, User
 from src.services.websocket_manager import WebSocketManager
 
 logger = logging.getLogger(__name__)
@@ -58,6 +58,8 @@ async def new_message_handler(
     current_user: User,
     **kwargs,
 ):
+    # TODO: Must make an atomic transaction
+
     message_schema = ReceiveMessageSchema(**incoming_message)
     chat_guid = str(message_schema.chat_guid)
 
@@ -73,6 +75,17 @@ async def new_message_handler(
         user_id=current_user.id,
     )
     db_session.add(message)
+    await db_session.flush()  # to generate id
+
+    # update own read status
+    read_status: ReadStatus | None = await get_read_status(db_session, user_id=current_user.id, chat_id=chat_id)
+
+    if not read_status:
+        await socket_manager.send_error(
+            f"[new_message] Read Status for user {current_user.username} does not exist", websocket
+        )
+    read_status.last_read_message_id = message.id
+    db_session.add(read_status)
 
     # Update the updated_at field of the chat
     chat = await db_session.get(Chat, chat_id)
@@ -84,7 +97,15 @@ async def new_message_handler(
 
     await mark_user_as_online(cache, current_user)
 
-    send_message_schema = SendMessageSchema.model_validate(message, from_attributes=True)
+    send_message_schema = SendMessageSchema(
+        message_guid=message.guid,
+        chat_guid=chat.guid,
+        user_guid=current_user.guid,
+        content=message.content,
+        created_at=message.created_at,
+        is_read=False,
+        is_new=True,
+    )
     outgoing_message: dict = send_message_schema.model_dump_json()
     await socket_manager.broadcast_to_chat(chat_guid, outgoing_message)
 
@@ -116,6 +137,7 @@ async def message_read_handler(
     chat_id = chats.get(chat_guid)
 
     await mark_last_read_message(db_session, user_id=current_user.id, chat_id=chat_id, last_read_message_id=message.id)
+    # logger.warning(f"Message: {message.content} was ready by {current_user.username}")
 
     outgoing_message = {
         "type": "message_read",

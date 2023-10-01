@@ -69,9 +69,18 @@ async def mark_last_read_message(
                 f"user_id: {user_id}, chat_id: {chat_id}, last_read_message_id: {last_read_message_id}"
             )
         else:
+            print("MY NEW LAST READ MESSAGE", last_read_message_id)
             read_status.last_read_message_id = last_read_message_id
 
     db_session.add(read_status)
     await db_session.commit()
+
+    return read_status
+
+
+async def get_read_status(db_session: AsyncSession, *, user_id: int, chat_id: int) -> ReadStatus | None:
+    query = select(ReadStatus).where(and_(ReadStatus.user_id == user_id, ReadStatus.chat_id == chat_id))
+    result = await db_session.execute(query)
+    read_status: ReadStatus | None = result.scalar_one_or_none()
 
     return read_status
