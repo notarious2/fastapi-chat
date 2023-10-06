@@ -13,7 +13,15 @@ async def test_get_user_chats_succeeds_given_chat_exists(authenticated_bob_clien
 
     chats = response.json()
     assert len(chats) == 1
-    assert set(chats[0].keys()) == {"guid", "chat_type", "created_at", "updated_at", "is_active", "users"}
+    assert set(chats[0].keys()) == {
+        "chat_guid",
+        "chat_type",
+        "created_at",
+        "updated_at",
+        "users",
+        "has_new_messages",
+        "new_messages_count",
+    }
 
 
 async def test_get_user_chats_succeeds_given_user_has_multiple_chats(
@@ -28,4 +36,12 @@ async def test_get_user_chats_succeeds_given_user_has_multiple_chats(
     chats = response.json()
     assert len(chats) == 2
     for chat in chats:
-        assert set(chat.keys()) == {"guid", "chat_type", "created_at", "updated_at", "is_active", "users"}
+        assert set(chat.keys()) == {
+            "chat_guid",
+            "chat_type",
+            "created_at",
+            "updated_at",
+            "users",
+            "has_new_messages",
+            "new_messages_count",
+        }

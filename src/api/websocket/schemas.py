@@ -26,3 +26,9 @@ class MessageReadSchema(BaseModel):
     type: str
     chat_guid: UUID4
     message_guid: UUID4
+
+
+class UserTypingSchema(BaseModel):
+    type: str
+    chat_guid: UUID4
+    user_guid: UUID4

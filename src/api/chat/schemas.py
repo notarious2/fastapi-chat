@@ -55,7 +55,7 @@ class GetChatSchema(BaseModel):
 
 
 class LastReadMessageSchema(BaseModel):
-    guid: str
+    guid: UUID4
     content: str
     created_at: datetime
 

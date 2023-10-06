@@ -72,7 +72,7 @@ async def send_message(
     return "Message has been sent"
 
 
-@chat_router.get("/chat/{chat_guid}/messages/", summary="Get user's chat messages")  #
+@chat_router.get("/chat/{chat_guid}/messages/", summary="Get user's chat messages")
 async def get_user_messages_in_chat(
     chat_guid: UUID,
     size: Annotated[int | None, Query(gt=0, lt=200)] = 20,
@@ -87,7 +87,6 @@ async def get_user_messages_in_chat(
     if current_user not in chat.users:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You don't have access to this chat")
 
-    # TODO: find an effective way to modify Page response
     messages, has_more_messages, last_read_message = await get_chat_messages(
         db_session, user_id=current_user.id, chat=chat, size=size
     )

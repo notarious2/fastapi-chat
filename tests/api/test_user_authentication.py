@@ -13,7 +13,12 @@ async def test_user_login_succeeds_given_valid_credentials(async_client: AsyncCl
     response = await async_client.post(url, data=payload)
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"access_token": mock.ANY, "refresh_token": mock.ANY, "username": bob_user.username}
+    assert response.json() == {
+        "access_token": mock.ANY,
+        "refresh_token": mock.ANY,
+        "username": bob_user.username,
+        "user_guid": str(bob_user.guid),
+    }
 
     assert response.cookies["access_token"] == mock.ANY
     assert response.cookies["refresh_token"] == mock.ANY

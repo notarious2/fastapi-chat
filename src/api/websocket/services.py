@@ -21,27 +21,37 @@ async def check_user_statuses(cache: aioredis.Redis, socket_manager: WebSocketMa
 
         if is_online:
             for chat_guid in user_chat_guids:
-                # Update the user's status as "offline" in the frontend
+                # Update the user's status as "online" in the frontend
                 await socket_manager.broadcast_to_chat(
-                    chat_guid, {"type": "status", "username": current_user.username, "online": True}
+                    chat_guid, {"type": "status", "username": current_user.username, "status": "online"}
                 )
-                pass
+
         else:
             for chat_guid in user_chat_guids:
-                # Update the user's status as "offline" in the frontend
+                # Update the user's status as "inactive" in the frontend
                 await socket_manager.broadcast_to_chat(
-                    chat_guid, {"type": "status", "username": current_user.username, "online": False}
+                    chat_guid, {"type": "status", "username": current_user.username, "status": "inactive"}
                 )
-        await asyncio.sleep(10)  # Sleep for 5 seconds before the next check
+        await asyncio.sleep(10)  # Sleep for 10 seconds before the next check
 
 
-async def mark_user_as_offline(cache: aioredis.Redis, current_user: User):
-    # Remove the user's status key from Redis
+async def mark_user_as_offline(
+    cache: aioredis.Redis, socket_manager: WebSocketManager, current_user: User, chat_guid: str
+):
     await cache.delete(f"user:{current_user.id}:status")
+    await socket_manager.broadcast_to_chat(
+        chat_guid, {"type": "status", "username": current_user.username, "status": "offline"}
+    )
 
 
-async def mark_user_as_online(cache: aioredis.Redis, current_user: User):
-    await cache.set(f"user:{current_user.id}:status", "online", ex=60 * 60 * 2)
+async def mark_user_as_online(
+    cache: aioredis.Redis, current_user: User, socket_manager: WebSocketManager = None, chat_guid: str = None
+):
+    await cache.set(f"user:{current_user.id}:status", "online", ex=60)  # 2 hours
+    if socket_manager and chat_guid:
+        await socket_manager.broadcast_to_chat(
+            chat_guid, {"type": "status", "username": current_user.username, "status": "online"}
+        )
 
 
 async def get_message_by_guid(db_session: AsyncSession, *, message_guid: UUID) -> Message | None:
@@ -54,7 +64,7 @@ async def get_message_by_guid(db_session: AsyncSession, *, message_guid: UUID) -
 
 async def mark_last_read_message(
     db_session: AsyncSession, *, user_id: int, chat_id: int, last_read_message_id: int
-) -> ReadStatus:
+) -> ReadStatus | None:
     query = select(ReadStatus).where(and_(ReadStatus.user_id == user_id, ReadStatus.chat_id == chat_id))
     result = await db_session.execute(query)
     read_status: ReadStatus | None = result.scalar_one_or_none()
@@ -68,6 +78,7 @@ async def mark_last_read_message(
                 f"This message has been already read, details: "
                 f"user_id: {user_id}, chat_id: {chat_id}, last_read_message_id: {last_read_message_id}"
             )
+            return
         else:
             print("MY NEW LAST READ MESSAGE", last_read_message_id)
             read_status.last_read_message_id = last_read_message_id

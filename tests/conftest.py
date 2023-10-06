@@ -138,6 +138,11 @@ async def bob_emily_chat(db_session: AsyncSession, bob_user: User, emily_user: U
     chat.users.append(bob_user)
     chat.users.append(emily_user)
     db_session.add(chat)
+    await db_session.flush()
+    # make empty read statuses for both users last_read_message_id = 0
+    initiator_read_status = ReadStatus(chat_id=chat.id, user_id=bob_user.id, last_read_message_id=0)
+    recipient_read_status = ReadStatus(chat_id=chat.id, user_id=emily_user.id, last_read_message_id=0)
+    db_session.add_all([initiator_read_status, recipient_read_status])
     await db_session.commit()
 
     return chat
@@ -149,6 +154,12 @@ async def bob_doug_chat(db_session: AsyncSession, doug_user: User, bob_user: Use
     chat.users.append(doug_user)
     chat.users.append(bob_user)
     db_session.add(chat)
+    await db_session.flush()
+    # make empty read statuses for both users last_read_message_id = 0
+    initiator_read_status = ReadStatus(chat_id=chat.id, user_id=bob_user.id, last_read_message_id=0)
+    recipient_read_status = ReadStatus(chat_id=chat.id, user_id=doug_user.id, last_read_message_id=0)
+    db_session.add_all([initiator_read_status, recipient_read_status])
+
     await db_session.commit()
 
     return chat
@@ -180,10 +191,28 @@ async def bob_emily_chat_messages_history(
 
 
 @pytest.fixture
-async def bob_read_status(db_session, bob_user, bob_emily_chat_messages_history):
+async def bob_read_status(
+    db_session: AsyncSession, bob_user: User, bob_emily_chat_messages_history: list[Message]
+) -> ReadStatus:
+    # bob read 10 messages
     last_read_message = bob_emily_chat_messages_history[9]
     read_status = ReadStatus(
         user_id=bob_user.id, chat_id=last_read_message.chat.id, last_read_message_id=last_read_message.id
+    )
+    db_session.add(read_status)
+    await db_session.commit()
+
+    return read_status
+
+
+@pytest.fixture
+async def emily_read_status(
+    db_session: AsyncSession, emily_user: User, bob_emily_chat_messages_history: list[Message]
+) -> ReadStatus:
+    # emily read 15 messages
+    last_read_message = bob_emily_chat_messages_history[14]
+    read_status = ReadStatus(
+        user_id=emily_user.id, chat_id=last_read_message.chat.id, last_read_message_id=last_read_message.id
     )
     db_session.add(read_status)
     await db_session.commit()

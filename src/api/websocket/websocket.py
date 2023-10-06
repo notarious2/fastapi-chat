@@ -27,8 +27,8 @@ async def websocket_endpoint(
 ):
     await socket_manager.connect_socket(websocket=websocket)
 
-    # Update the user's status in Redis with a new TTL (e.g., 60 seconds)
-    await mark_user_as_online(cache, current_user)
+    # Update the user's status in Redis with a new TTL
+    await mark_user_as_online(cache=cache, current_user=current_user)
 
     # keep track of open redis pub/sub channels holds guid/id key-value pairs
     chats = dict()
@@ -42,8 +42,12 @@ async def websocket_endpoint(
                     await socket_manager.send_error("You should provide message type", websocket)
 
                 handler = socket_manager.handlers.get(message_type)
+
                 if not handler:
+                    logger.exception(f"No handler [{message_type}] exists")
                     await socket_manager.send_error(f"Type: {message_type} was not found", websocket)
+                    continue
+
                 await handler(
                     websocket=websocket,
                     db_session=db_session,
@@ -61,14 +65,8 @@ async def websocket_endpoint(
                 await socket_manager.send_error("Could not validate incoming message", websocket)
 
     except WebSocketDisconnect:
-        await mark_user_as_offline(cache, current_user)
         for chat_guid in chats.keys():
             await socket_manager.remove_user_from_chat(chat_guid, websocket)
-            await socket_manager.broadcast_to_chat(
-                chat_guid,
-                {
-                    "type": "status",
-                    "username": current_user.username,
-                    "online": False,
-                },
+            await mark_user_as_offline(
+                cache=cache, socket_manager=socket_manager, current_user=current_user, chat_guid=chat_guid
             )
