@@ -210,7 +210,12 @@ async def add_read_status_to_chat(db_session: AsyncSession, *, current_user: Use
 
     # get all user's active messages that have smaller last_read_message_id
     new_messages_query = select(func.count()).where(
-        and_(Message.user_id != current_user.id, Message.id > own_last_read_message_id, Message.is_active.is_(True))
+        and_(
+            Message.user_id != current_user.id,
+            Message.id > own_last_read_message_id,
+            Message.is_active.is_(True),
+            Message.chat_id == chat.id,
+        )
     )
     result = await db_session.execute(new_messages_query)
     new_messages_count: int = result.scalar_one_or_none()
