@@ -112,8 +112,6 @@ async def get_chat_messages(
     for read_status in chat.read_statuses:
         if read_status.user_id == user_id:
             my_last_read_message_id = read_status.last_read_message_id
-        else:
-            other_last_read_message_id = read_status.last_read_message_id
 
     last_read_message = await db_session.get(Message, my_last_read_message_id)
     get_message_schemas = [
@@ -123,8 +121,7 @@ async def get_chat_messages(
             created_at=message.created_at,
             chat_guid=message.chat.guid,
             user_guid=message.user.guid,
-            is_read=message.id <= other_last_read_message_id,
-            is_new=message.id > my_last_read_message_id,
+            is_read=message.id <= my_last_read_message_id,
         )
         for message in messages
     ]
@@ -207,7 +204,6 @@ async def add_read_status_to_chat(db_session: AsyncSession, *, current_user: Use
         # own read status -> for new messages
         if read_status.user_id == current_user.id:
             own_last_read_message_id = read_status.last_read_message_id
-
     # get all user's active messages that have smaller last_read_message_id
     new_messages_query = select(func.count()).where(
         and_(
@@ -219,7 +215,6 @@ async def add_read_status_to_chat(db_session: AsyncSession, *, current_user: Use
     )
     result = await db_session.execute(new_messages_query)
     new_messages_count: int = result.scalar_one_or_none()
-
     if new_messages_count:
         has_new_messages = True
 
