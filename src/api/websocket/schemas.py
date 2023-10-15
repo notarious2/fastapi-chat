@@ -19,7 +19,6 @@ class SendMessageSchema(BaseModel):
     content: str
     created_at: datetime
     is_read: bool | None = False
-    is_new: bool | None = True
 
 
 class MessageReadSchema(BaseModel):

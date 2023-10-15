@@ -5,7 +5,7 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.api.chat.schemas import GetChatSchema, GetMessageSchema
+from src.api.chat.schemas import GetDirectChatsSchema, GetMessageSchema
 from src.models import Chat, ChatType, Message, ReadStatus, User
 
 
@@ -74,13 +74,14 @@ async def send_message_to_chat(db_session: AsyncSession, *, content: str, chat_i
     return message
 
 
-async def get_user_chats(db_session: AsyncSession, *, current_user: User) -> list[Chat]:
+async def get_user_direct_chats(db_session: AsyncSession, *, current_user: User) -> list[Chat]:
     query = (
         select(Chat)
         .where(
             and_(
                 Chat.users.contains(current_user),
                 Chat.is_active.is_(True),
+                Chat.chat_type == ChatType.DIRECT,
             )
         )
         .options(selectinload(Chat.users), selectinload(Chat.read_statuses))
@@ -218,7 +219,7 @@ async def add_read_status_to_chat(db_session: AsyncSession, *, current_user: Use
     if new_messages_count:
         has_new_messages = True
 
-    return GetChatSchema(
+    return GetDirectChatsSchema(
         chat_guid=chat.guid,
         chat_type=chat.chat_type,
         created_at=chat.created_at,

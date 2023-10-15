@@ -1,12 +1,14 @@
 import asyncio
 import logging
+from typing import Dict
 from uuid import UUID
 
 import redis.asyncio as aioredis
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from src.models import Message, ReadStatus, User
+from src.models import Chat, ChatType, Message, ReadStatus, User
 from src.services.websocket_manager import WebSocketManager
 
 logger = logging.getLogger(__name__)
@@ -95,3 +97,21 @@ async def get_read_status(db_session: AsyncSession, *, user_id: int, chat_id: in
     read_status: ReadStatus | None = result.scalar_one_or_none()
 
     return read_status
+
+
+async def get_user_active_direct_chats(db_session: AsyncSession, *, current_user: User) -> Dict[UUID, int] | None:
+    direct_chats_dict = dict()
+    query = (
+        select(Chat)
+        .where(and_(Chat.chat_type == ChatType.DIRECT, Chat.is_active.is_(True), Chat.users.contains(current_user)))
+        .options(selectinload(Chat.users))
+    )
+    result = await db_session.execute(query)
+    direct_chats: list[Chat] = result.scalars().all()
+
+    if direct_chats:
+        for direct_chat in direct_chats:
+            direct_chats_dict[str(direct_chat.guid)] = direct_chat.id
+        return direct_chats_dict
+    else:
+        return None

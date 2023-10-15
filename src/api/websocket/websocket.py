@@ -7,7 +7,12 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.websocket.handlers import socket_manager
-from src.api.websocket.services import check_user_statuses, mark_user_as_offline, mark_user_as_online
+from src.api.websocket.services import (
+    check_user_statuses,
+    get_user_active_direct_chats,
+    mark_user_as_offline,
+    mark_user_as_online,
+)
 from src.database import get_async_session
 from src.dependencies import get_cache, get_current_user
 from src.models import User
@@ -32,6 +37,13 @@ async def websocket_endpoint(
 
     # keep track of open redis pub/sub channels holds guid/id key-value pairs
     chats = dict()
+    # get all users direct chats and subscribe # TODO: Generalize for group chats?
+    if direct_chats := await get_user_active_direct_chats(db_session, current_user=current_user):
+        chats = direct_chats
+        for chat_guid in chats.keys():
+            # subscribe this single websocket to many Redis PubSub channels
+            await socket_manager.add_user_to_chat(chat_guid, websocket)
+
     asyncio.create_task(check_user_statuses(cache, socket_manager, current_user, chats))
     try:
         while True:

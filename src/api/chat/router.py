@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.api.chat.schemas import (
     CreateDirectChatSchema,
     DisplayDirectChatSchema,
-    GetChatSchema,
+    GetDirectChatsSchema,
     GetMessagesSchema,
     GetOldMessagesSchema,
 )
@@ -20,7 +20,7 @@ from src.api.chat.services import (
     get_direct_chat,
     get_older_chat_messages,
     get_user_by_guid,
-    get_user_chats,
+    get_user_direct_chats,
     send_message_to_chat,
 )
 from src.database import get_async_session
@@ -99,12 +99,14 @@ async def get_user_messages_in_chat(
     return response
 
 
-@chat_router.get("/chats/", summary="Get user's chats", response_model=list[GetChatSchema])
+@chat_router.get("/chats/direct/", summary="Get user's direct chats", response_model=list[GetDirectChatsSchema])
 async def get_user_chats_view(
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
 ):
-    chats: list[Chat] = await get_user_chats(db_session, current_user=current_user)
+    chats: list[Chat] = await get_user_direct_chats(db_session, current_user=current_user)
+
+    # subscribe user to all direct chats
 
     return [await add_read_status_to_chat(db_session, current_user=current_user, chat=chat) for chat in chats]
 

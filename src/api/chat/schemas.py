@@ -41,7 +41,7 @@ class DisplayDirectChatSchema(BaseModel):
     users: list[UserSchema]
 
 
-class GetChatSchema(BaseModel):
+class GetDirectChatsSchema(BaseModel):
     chat_guid: UUID4
     chat_type: ChatType
     created_at: datetime
