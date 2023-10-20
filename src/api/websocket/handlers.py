@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.chat.services import get_chat_by_guid
 from src.api.websocket.schemas import MessageReadSchema, ReceiveMessageSchema, SendMessageSchema, UserTypingSchema
-from src.api.websocket.services import get_message_by_guid, get_read_status, mark_last_read_message, mark_user_as_online
+from src.api.websocket.services import get_message_by_guid, mark_last_read_message, mark_user_as_online
 from src.models import Chat, Message, ReadStatus, User
 from src.services.websocket_manager import WebSocketManager
 
@@ -76,16 +76,6 @@ async def new_message_handler(
         db_session.add(message)
         await db_session.flush()  # to generate id
 
-        # update own read status
-        read_status: ReadStatus | None = await get_read_status(db_session, user_id=current_user.id, chat_id=chat_id)
-
-        if not read_status:
-            await socket_manager.send_error(
-                f"[new_message] Read Status for user {current_user.username} does not exist", websocket
-            )
-        read_status.last_read_message_id = message.id
-        db_session.add(read_status)
-
         # Update the updated_at field of the chat
         chat = await db_session.get(Chat, chat_id)
         chat.updated_at = datetime.now()
@@ -125,6 +115,7 @@ async def message_read_handler(
     cache: aioredis.Redis,
     **kwargs,
 ):
+    print("MARKING MESSAGE AS READ", current_user, incoming_message)
     message_read_schema = MessageReadSchema(**incoming_message)
 
     message_guid = str(message_read_schema.message_guid)
