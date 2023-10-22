@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import AsyncGenerator
 
 import pytest
+from asgi_lifespan import LifespanManager
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 from sqlalchemy import text
@@ -67,8 +68,12 @@ def event_loop(request):
 
 @pytest.fixture
 async def async_client() -> AsyncGenerator[AsyncClient, None]:
-    async with AsyncClient(app=app, base_url="http://test") as async_client:
-        yield async_client
+    # httpx does not implement lifespan protocol and trigger startup event handlers.
+    # For this, you need to use LifespanManager.
+    # https://stackoverflow.com/questions/65051581/how-to-trigger-lifespan-startup-and-shutdown-while-testing-fastapi-app
+    async with LifespanManager(app):
+        async with AsyncClient(app=app, base_url="http://test") as async_client:
+            yield async_client
 
 
 @pytest.fixture

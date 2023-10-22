@@ -13,7 +13,7 @@ class RedisPubSubManager:
         self.pubsub = None
 
     async def connect(self):
-        self.redis_connection = await aioredis.Redis(connection_pool=self.pool)
+        self.redis_connection = aioredis.Redis(connection_pool=self.pool)
         self.pubsub = self.redis_connection.pubsub()
 
     async def subscribe(self, chat_guid: UUID) -> aioredis.Redis:

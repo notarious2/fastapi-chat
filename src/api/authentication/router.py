@@ -4,6 +4,7 @@ from typing import Annotated
 import jwt
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.authentication.services import authenticate_user, get_user_by_login_identifier
@@ -15,7 +16,11 @@ from src.models import User
 auth_router = APIRouter(tags=["Authentication"])
 
 
-@auth_router.post("/login/", summary="Create access and refresh tokens for a user")
+@auth_router.post(
+    "/login/",
+    dependencies=[Depends(RateLimiter(times=10, minutes=1))],
+    summary="Create access and refresh tokens for a user",
+)
 async def login(
     response: Response,
     db_session: AsyncSession = Depends(get_async_session),
@@ -37,10 +42,11 @@ async def login(
     response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="none", secure=True)
 
     return {
-        "access_token": create_access_token(login_identifier),
-        "refresh_token": create_refresh_token(login_identifier),
-        "username": user.username,
         "user_guid": user.guid,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "username": user.username,
     }
 
 

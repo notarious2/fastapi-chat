@@ -25,7 +25,6 @@ async def test_get_messages_succeeds_given_existing_chat_with_messages(
         "user_guid",
         "chat_guid",
         "is_read",
-        "is_new",
     }
 
 
@@ -43,8 +42,7 @@ async def test_get_messages_succeeds_given_existing_chat_with_messages_and_read_
     assert response.json() == {"has_more_messages": False, "messages": mock.ANY, "last_read_message": mock.ANY}
     messages = response.json()["messages"]
     assert len(messages) == 20
-    assert sum([message["is_read"] for message in messages]) == 15  # emily read
-    assert sum([message["is_new"] for message in messages]) == 10  # bob not read (new)
+    assert sum([message["is_read"] for message in messages]) == 10
 
 
 async def test_get_messages_succeeds_given_existing_chat_with_messages_and_size(

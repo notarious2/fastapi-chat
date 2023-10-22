@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.api.chat.services import get_chat_by_guid
 from src.api.websocket.schemas import MessageReadSchema, ReceiveMessageSchema, SendMessageSchema, UserTypingSchema
 from src.api.websocket.services import get_message_by_guid, mark_last_read_message, mark_user_as_online
+from src.managers.websocket_manager import WebSocketManager
 from src.models import Chat, Message, ReadStatus, User
-from src.services.websocket_manager import WebSocketManager
 
 logger = logging.getLogger(__name__)
 

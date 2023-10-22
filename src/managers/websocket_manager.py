@@ -3,7 +3,7 @@ import json
 
 from fastapi import WebSocket
 
-from src.services.pubsub_manager import RedisPubSubManager
+from src.managers.pubsub_manager import RedisPubSubManager
 
 
 class WebSocketManager:

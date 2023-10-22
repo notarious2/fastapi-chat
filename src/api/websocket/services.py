@@ -8,8 +8,8 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from src.managers.websocket_manager import WebSocketManager
 from src.models import Chat, ChatType, Message, ReadStatus, User
-from src.services.websocket_manager import WebSocketManager
 
 logger = logging.getLogger(__name__)
 

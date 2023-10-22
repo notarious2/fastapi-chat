@@ -14,8 +14,9 @@ async def test_user_login_succeeds_given_valid_credentials(async_client: AsyncCl
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
-        "access_token": mock.ANY,
-        "refresh_token": mock.ANY,
+        "first_name": bob_user.first_name,
+        "last_name": bob_user.last_name,
+        "email": bob_user.email,
         "username": bob_user.username,
         "user_guid": str(bob_user.guid),
     }

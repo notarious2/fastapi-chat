@@ -1,13 +1,14 @@
+from typing import Annotated
+
 import jwt
-from fastapi import Depends, HTTPException, status, Cookie
+import redis.asyncio as aioredis
+from fastapi import Cookie, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.authentication.services import get_user_by_login_identifier
 from src.config import settings
 from src.database import get_async_session
 from src.models import User
-from typing import Annotated
-import redis.asyncio as aioredis
 
 
 async def get_current_user(
@@ -59,4 +60,4 @@ pool = aioredis.ConnectionPool(
 
 
 async def get_cache() -> aioredis.Redis:
-    return await aioredis.Redis(connection_pool=pool)
+    return aioredis.Redis(connection_pool=pool)

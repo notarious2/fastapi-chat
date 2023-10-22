@@ -5,7 +5,7 @@ from src.models import Chat
 
 
 async def test_get_user_chats_succeeds_given_chat_exists(authenticated_bob_client: AsyncClient, bob_emily_chat: Chat):
-    url = "/chats/"
+    url = "/chats/direct/"
 
     response = await authenticated_bob_client.get(url)
 
@@ -27,7 +27,7 @@ async def test_get_user_chats_succeeds_given_chat_exists(authenticated_bob_clien
 async def test_get_user_chats_succeeds_given_user_has_multiple_chats(
     authenticated_bob_client: AsyncClient, bob_emily_chat: Chat, bob_doug_chat: Chat
 ):
-    url = "/chats/"
+    url = "/chats/direct/"
 
     response = await authenticated_bob_client.get(url)
 
