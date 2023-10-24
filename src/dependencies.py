@@ -55,7 +55,7 @@ async def get_current_user(
 
 
 pool = aioredis.ConnectionPool(
-    host=settings.redis_host, port=settings.redis_port, password=settings.redis_password, db=1
+    host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD, db=1
 )
 
 

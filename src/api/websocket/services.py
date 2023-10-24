@@ -8,6 +8,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from src.config import settings
 from src.managers.websocket_manager import WebSocketManager
 from src.models import Chat, ChatType, Message, ReadStatus, User
 
@@ -34,7 +35,7 @@ async def check_user_statuses(cache: aioredis.Redis, socket_manager: WebSocketMa
                 await socket_manager.broadcast_to_chat(
                     chat_guid, {"type": "status", "username": current_user.username, "status": "inactive"}
                 )
-        await asyncio.sleep(10)  # Sleep for 10 seconds before the next check
+        await asyncio.sleep(settings.SECONDS_TO_SEND_USER_STATUS)  # Sleep for 60 seconds before the next check
 
 
 async def mark_user_as_offline(

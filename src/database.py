@@ -9,11 +9,11 @@ from src.config import settings
 
 DATABASE_URL = (
     f"postgresql+asyncpg://"
-    f"{settings.db_user}:{settings.db_password}@{settings.db_host}:{settings.db_port}/{settings.db_name}"
+    f"{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 )
 
 
-metadata = MetaData(schema=settings.db_schema)
+metadata = MetaData(schema=settings.DB_SCHEMA)
 
 
 class RemoveBaseFieldsMixin:

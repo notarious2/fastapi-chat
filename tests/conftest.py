@@ -19,7 +19,7 @@ from src.utils import get_hashed_password
 
 DATABASE_URL_TEST = (
     f"postgresql+asyncpg://"
-    f"{settings.db_user}:{settings.db_password}@{settings.db_host}:{settings.db_port}/{settings.db_name}"
+    f"{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 )
 engine_test = create_async_engine(DATABASE_URL_TEST, connect_args={"server_settings": {"jit": "off"}})
 async_session_maker = sessionmaker(engine_test, class_=AsyncSession, expire_on_commit=False)
@@ -37,14 +37,14 @@ app.dependency_overrides[get_async_session] = override_get_async_session
 @pytest.fixture(scope="session")
 async def db_session():
     async with engine_test.begin() as conn:
-        await conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {settings.db_schema}"))
+        await conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {settings.DB_SCHEMA}"))
         await conn.run_sync(metadata.create_all)
     async with async_session_maker() as session:
         yield session
         await session.flush()
         await session.rollback()
     async with engine_test.begin() as conn:
-        await conn.execute(text(f"DROP SCHEMA {settings.db_schema} CASCADE"))
+        await conn.execute(text(f"DROP SCHEMA {settings.DB_SCHEMA} CASCADE"))
 
 
 # https://stackoverflow.com/questions/4763472/sqlalchemy-clear-database-content-but-dont-drop-the-schema
