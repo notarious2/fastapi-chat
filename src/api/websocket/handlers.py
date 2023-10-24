@@ -69,6 +69,11 @@ async def new_message_handler(
     await mark_user_as_online(
         cache=cache, current_user=current_user, socket_manager=socket_manager, chat_guid=chat_guid
     )
+    # clear cache for getting messages
+    pattern_for_get_messages = f"messages*_{chat_guid}"
+    keys_found = cache.scan_iter(match=pattern_for_get_messages)
+    async for key in keys_found:
+        await cache.delete(key)
 
     send_message_schema = SendMessageSchema(
         message_guid=message.guid,

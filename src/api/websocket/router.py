@@ -88,7 +88,7 @@ async def websocket_endpoint(
 
     except WebSocketDisconnect:
         for chat_guid in chats.keys():
-            await socket_manager.remove_user_from_chat(chat_guid, websocket)
             await mark_user_as_offline(
                 cache=cache, socket_manager=socket_manager, current_user=current_user, chat_guid=chat_guid
             )
+            await socket_manager.remove_user_from_chat(chat_guid, websocket)

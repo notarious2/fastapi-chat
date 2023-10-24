@@ -9,26 +9,6 @@ from src.api.chat.schemas import GetDirectChatsSchema, GetMessageSchema
 from src.models import Chat, ChatType, Message, ReadStatus, User
 
 
-async def get_direct_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat | None:
-    query = (
-        select(Chat)
-        .where(
-            and_(
-                Chat.chat_type == ChatType.DIRECT,
-                Chat.users.contains(initiator_user),
-                Chat.users.contains(recipient_user),
-                Chat.is_active.is_(True),
-            )
-        )
-        .options(selectinload(Chat.users))
-    )
-    result = await db_session.execute(query)
-    # sqlalchemy.exc.MultipleResultsFound
-    chat: Chat | None = result.scalar_one_or_none()
-
-    return chat
-
-
 async def create_direct_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat:
     # TODO: Make it an atomic transaction
     chat = Chat(chat_type=ChatType.DIRECT)
@@ -45,11 +25,47 @@ async def create_direct_chat(db_session: AsyncSession, *, initiator_user: User, 
     return chat
 
 
+async def get_direct_chat_by_users(
+    db_session: AsyncSession, *, initiator_user: User, recipient_user: User
+) -> Chat | None:
+    query = select(Chat).where(
+        and_(
+            Chat.chat_type == ChatType.DIRECT, Chat.users.contains(initiator_user), Chat.users.contains(recipient_user)
+        )
+    )
+
+    result = await db_session.execute(query)
+    chat: Chat | None = result.scalar_one_or_none()
+
+    return chat
+
+
 async def get_chat_by_guid(db_session: AsyncSession, *, chat_guid: UUID) -> Chat | None:
     query = (
         select(Chat)
         .where(Chat.guid == chat_guid)
         .options(selectinload(Chat.messages), selectinload(Chat.users), selectinload(Chat.read_statuses))
+    )
+    result = await db_session.execute(query)
+    chat: Chat | None = result.scalar_one_or_none()
+
+    return chat
+
+
+async def get_user_direct_chat_by_guid(
+    db_session: AsyncSession, *, current_user: User, direct_chat_guid: UUID
+) -> Chat | None:
+    query = (
+        select(Chat)
+        .where(
+            and_(
+                Chat.is_active.is_(True),
+                Chat.users.contains(current_user),
+                Chat.guid == direct_chat_guid,
+                Chat.chat_type == ChatType.DIRECT,
+            )
+        )
+        .options(selectinload(Chat.users))
     )
     result = await db_session.execute(query)
     chat: Chat | None = result.scalar_one_or_none()
@@ -63,15 +79,6 @@ async def get_user_by_guid(db_session: AsyncSession, *, user_guid: UUID) -> User
     user: User | None = result.scalar_one_or_none()
 
     return user
-
-
-# TODO: Should I differentiate message sending based on chat type?!
-async def send_message_to_chat(db_session: AsyncSession, *, content: str, chat_id: int, user_id: int) -> Message:
-    message = Message(content=content, chat_id=chat_id, user_id=user_id)
-    db_session.add(message)
-    await db_session.commit()
-
-    return message
 
 
 async def get_user_direct_chats(db_session: AsyncSession, *, current_user: User) -> list[Chat]:

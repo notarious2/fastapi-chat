@@ -37,7 +37,7 @@ async def login(
     # create token based on login identifier instead of static username/email
     access_token: str = create_access_token(login_identifier)
     refresh_token: str = create_refresh_token(login_identifier)
-
+    print(access_token)
     response.set_cookie(key="access_token", value=access_token, httponly=True, samesite="none", secure=True)
     response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="none", secure=True)
 
