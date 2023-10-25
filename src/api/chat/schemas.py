@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import UUID4, BaseModel
+from pydantic import UUID4, BaseModel, RootModel
 
 from src.models import ChatType
 
@@ -41,7 +41,7 @@ class DisplayDirectChatSchema(BaseModel):
     users: list[UserSchema]
 
 
-class GetDirectChatsSchema(BaseModel):
+class GetDirectChatSchema(BaseModel):
     chat_guid: UUID4
     chat_type: ChatType
     created_at: datetime
@@ -52,6 +52,10 @@ class GetDirectChatsSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class GetDirectChatsSchema(RootModel[GetDirectChatSchema]):
+    root: list[GetDirectChatSchema]
 
 
 class LastReadMessageSchema(BaseModel):

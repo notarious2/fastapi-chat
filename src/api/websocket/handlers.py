@@ -9,6 +9,7 @@ from src.api.websocket.schemas import MessageReadSchema, ReceiveMessageSchema, S
 from src.api.websocket.services import get_message_by_guid, get_read_status, mark_last_read_message, mark_user_as_online
 from src.managers.websocket_manager import WebSocketManager
 from src.models import Chat, Message, ReadStatus, User
+from src.utils import clear_cache_for_get_direct_chats, clear_cache_for_get_messages
 
 logger = logging.getLogger(__name__)
 
@@ -69,11 +70,12 @@ async def new_message_handler(
     await mark_user_as_online(
         cache=cache, current_user=current_user, socket_manager=socket_manager, chat_guid=chat_guid
     )
+    # clear cache for get_direct_chats key for other users
+    for user in chat.users:
+        if not user == current_user:
+            await clear_cache_for_get_direct_chats(cache=cache, user=user)
     # clear cache for getting messages
-    pattern_for_get_messages = f"messages*_{chat_guid}"
-    keys_found = cache.scan_iter(match=pattern_for_get_messages)
-    async for key in keys_found:
-        await cache.delete(key)
+    await clear_cache_for_get_messages(cache=cache, chat_guid=chat_guid)
 
     send_message_schema = SendMessageSchema(
         message_guid=message.guid,
@@ -133,6 +135,8 @@ async def message_read_handler(
         await mark_user_as_online(
             cache=cache, current_user=current_user, socket_manager=socket_manager, chat_guid=chat_guid
         )
+        # clear cache for getting messages
+        await clear_cache_for_get_messages(cache=cache, chat_guid=chat_guid)
 
         await socket_manager.broadcast_to_chat(chat_guid, outgoing_message)
 
