@@ -6,7 +6,7 @@ from fastapi import WebSocket
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.websocket.schemas import MessageReadSchema, ReceiveMessageSchema, SendMessageSchema, UserTypingSchema
-from src.api.websocket.services import get_message_by_guid, get_read_status, mark_last_read_message, mark_user_as_online
+from src.api.websocket.services import get_message_by_guid, mark_last_read_message, mark_user_as_online
 from src.managers.websocket_manager import WebSocketManager
 from src.models import Chat, Message, ReadStatus, User
 from src.utils import clear_cache_for_get_direct_chats, clear_cache_for_get_messages
@@ -44,16 +44,6 @@ async def new_message_handler(
         )
         db_session.add(message)
         await db_session.flush()  # to generate id
-
-        # should set last read message to sent message for the user who sent it
-        read_status: ReadStatus | None = await get_read_status(db_session, user_id=current_user.id, chat_id=chat_id)
-
-        if not read_status:
-            await socket_manager.send_error(
-                f"[new_message] Read Status for user {current_user.username} does not exist", websocket
-            )
-        read_status.last_read_message_id = message.id
-        db_session.add(read_status)
 
         # Update the updated_at field of the chat
         chat = await db_session.get(Chat, chat_id)
