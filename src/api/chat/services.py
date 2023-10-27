@@ -99,6 +99,8 @@ async def get_chat_messages(
     for read_status in chat.read_statuses:
         if read_status.user_id != user_id:
             other_user_last_read_message_id = read_status.last_read_message_id
+        else:
+            my_last_read_message_id = read_status.last_read_message_id
 
     last_read_message = await db_session.get(Message, other_user_last_read_message_id)
     get_message_schemas = [
@@ -108,7 +110,8 @@ async def get_chat_messages(
             created_at=message.created_at,
             chat_guid=message.chat.guid,
             user_guid=message.user.guid,
-            is_read=message.id <= other_user_last_read_message_id,
+            is_read=message.id
+            <= (other_user_last_read_message_id if message.user.id == user_id else my_last_read_message_id),
         )
         for message in messages
     ]
