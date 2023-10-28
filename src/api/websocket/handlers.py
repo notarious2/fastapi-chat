@@ -60,10 +60,9 @@ async def new_message_handler(
     await mark_user_as_online(
         cache=cache, current_user=current_user, socket_manager=socket_manager, chat_guid=chat_guid
     )
-    # clear cache for get_direct_chats key for other users
+    # clear cache for all users (display last read message)
     for user in chat.users:
-        if not user == current_user:
-            await clear_cache_for_get_direct_chats(cache=cache, user=user)
+        await clear_cache_for_get_direct_chats(cache=cache, user=user)
     # clear cache for getting messages
     await clear_cache_for_get_messages(cache=cache, chat_guid=chat_guid)
 

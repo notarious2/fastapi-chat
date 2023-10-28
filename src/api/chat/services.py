@@ -71,7 +71,7 @@ async def get_user_direct_chats(db_session: AsyncSession, *, current_user: User)
             )
         )
         .options(selectinload(Chat.users), selectinload(Chat.read_statuses))
-    )
+    ).order_by(Chat.updated_at.desc())
     result = await db_session.execute(query)
 
     chats: list[Chat] = result.scalars().all()
