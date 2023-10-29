@@ -1,0 +1,20 @@
+from sqlalchemy import and_, not_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.models import User
+
+
+async def get_all_users(db_session: AsyncSession, *, current_user: User) -> list[User]:
+    query = (
+        select(User).where(
+            and_(
+                not_(User.id == current_user.id),
+                User.is_active.is_(True),
+            )
+        )
+    ).order_by(User.username)
+    result = await db_session.execute(query)
+
+    users: list[User] = result.scalars().all()
+
+    return users
