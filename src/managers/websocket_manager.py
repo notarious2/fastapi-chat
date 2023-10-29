@@ -47,10 +47,11 @@ class WebSocketManager:
             message = await pubsub_subscriber.get_message(ignore_subscribe_messages=True)
             if message is not None:
                 chat_guid = message["channel"].decode("utf-8")
-                all_sockets = self.chats[chat_guid]
-                for socket in all_sockets:
-                    data = message["data"].decode("utf-8")
-                    await socket.send_text(data)
+                sockets = self.chats.get(chat_guid)
+                if sockets:
+                    for socket in sockets:
+                        data = message["data"].decode("utf-8")
+                        await socket.send_text(data)
 
     async def send_error(self, message: str, websocket: WebSocket):
         await websocket.send_json({"status": "error", "message": message})

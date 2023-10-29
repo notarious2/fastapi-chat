@@ -1,43 +1,46 @@
+import json
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
+import redis.asyncio as aioredis
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.chat.schemas import (
     CreateDirectChatSchema,
     DisplayDirectChatSchema,
+    GetDirectChatSchema,
     GetDirectChatsSchema,
     GetMessagesSchema,
     GetOldMessagesSchema,
 )
 from src.api.chat.services import (
-    add_read_status_to_chat,
+    add_new_messages_stats_to_direct_chat,
     create_direct_chat,
     get_active_message_by_guid_and_chat,
     get_chat_by_guid,
     get_chat_messages,
-    get_direct_chat,
+    get_direct_chat_by_users,
     get_older_chat_messages,
     get_user_by_guid,
     get_user_direct_chats,
-    send_message_to_chat,
 )
+from src.config import settings
 from src.database import get_async_session
-from src.dependencies import get_current_user
+from src.dependencies import get_cache, get_current_user
 from src.models import Chat, Message, User
 
 chat_router = APIRouter(tags=["Chat Management"])
 
 
-@chat_router.post("/chat/direct/", summary="Get or create a direct chat", response_model=DisplayDirectChatSchema)
-async def get_or_create_direct_chat(
-    bob_emily_chat_schema: CreateDirectChatSchema,
+@chat_router.post("/chat/direct/", summary="Create a direct chat", response_model=DisplayDirectChatSchema)
+async def create_direct_chat_view(
+    create_direct_chat_schema: CreateDirectChatSchema,
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
 ):
     # check if another user (recipient) exists
-    recipient_user_guid = bob_emily_chat_schema.recipient_user_guid
+    recipient_user_guid = create_direct_chat_schema.recipient_user_guid
     recipient_user: User | None = await get_user_by_guid(db_session, user_guid=recipient_user_guid)
 
     # TODO: must check that recipient user is not the same as initiator
@@ -46,39 +49,33 @@ async def get_or_create_direct_chat(
             status_code=status.HTTP_404_NOT_FOUND, detail="There is no recipient user with provided guid"
         )
 
-    # return chat if already exists
-    chat: Chat | None = await get_direct_chat(db_session, initiator_user=current_user, recipient_user=recipient_user)
+    # check if chat already exists
+    if await get_direct_chat_by_users(db_session, initiator_user=current_user, recipient_user=recipient_user):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Chat already exists")
 
-    if not chat:
-        chat: Chat = await create_direct_chat(db_session, initiator_user=current_user, recipient_user=recipient_user)
+    # Check if the data is already in the cache
+    chat: Chat = await create_direct_chat(db_session, initiator_user=current_user, recipient_user=recipient_user)
 
     return chat
 
 
-@chat_router.post("/chat/{chat_guid}/message/", summary="Send a message")  #
-async def send_message(
-    chat_guid: UUID,
-    content: Annotated[str, Body(max_length=5000, embed=True)],
-    db_session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(get_current_user),
-):
-    chat: Chat | None = await get_chat_by_guid(db_session, chat_guid=chat_guid)
-
-    if not chat:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat with provided guid is not found")
-
-    await send_message_to_chat(db_session, content=content, user_id=current_user.id, chat_id=chat.id)
-
-    return "Message has been sent"
-
-
+# applies to both direct and group chats
+# TODO: Find all path where to nullify the keys
 @chat_router.get("/chat/{chat_guid}/messages/", summary="Get user's chat messages")
 async def get_user_messages_in_chat(
     chat_guid: UUID,
     size: Annotated[int | None, Query(gt=0, lt=200)] = 20,
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
+    cache: aioredis.Redis = Depends(get_cache),
 ):
+    cache_key = f"messages_{chat_guid}_{size}"
+
+    # return cached chat messages if key exists
+    if cached_chat_messages := await cache.get(cache_key):
+        print("Cache: Messages")
+        return json.loads(cached_chat_messages)
+
     chat: Chat | None = await get_chat_by_guid(db_session, chat_guid=chat_guid)
 
     if not chat:
@@ -96,19 +93,39 @@ async def get_user_messages_in_chat(
     )
     if last_read_message:
         response.last_read_message = last_read_message
+
+    # Store the chat in the cache with a TTL
+    await cache.set(cache_key, response.model_dump_json(), ex=settings.REDIS_CACHE_EXPIRATION_SECONDS)
+
     return response
 
 
-@chat_router.get("/chats/direct/", summary="Get user's direct chats", response_model=list[GetDirectChatsSchema])
+# TODO: when to clear the cache?
+@chat_router.get("/chats/direct/", summary="Get user's direct chats")
 async def get_user_chats_view(
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
+    cache: aioredis.Redis = Depends(get_cache),
 ):
+    # return cached direct chats if key exists
+    cache_key = f"direct_chats_{current_user.guid}"
+    if cached_direct_chats := await cache.get(cache_key):
+        print("Cache: Chats")
+        return json.loads(cached_direct_chats)
+
     chats: list[Chat] = await get_user_direct_chats(db_session, current_user=current_user)
 
-    # subscribe user to all direct chats
+    # Store response in the cache with a TTL
+    direct_chats: list[GetDirectChatSchema] = [
+        await add_new_messages_stats_to_direct_chat(db_session, current_user=current_user, chat=chat) for chat in chats
+    ]
 
-    return [await add_read_status_to_chat(db_session, current_user=current_user, chat=chat) for chat in chats]
+    response = GetDirectChatsSchema(root=direct_chats)
+
+    # Store response in the cache with a TTL
+    await cache.set(cache_key, response.model_dump_json(), ex=settings.REDIS_CACHE_EXPIRATION_SECONDS)
+
+    return response
 
 
 @chat_router.get(

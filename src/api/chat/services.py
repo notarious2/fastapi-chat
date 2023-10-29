@@ -5,28 +5,8 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.api.chat.schemas import GetDirectChatsSchema, GetMessageSchema
+from src.api.chat.schemas import GetDirectChatSchema, GetMessageSchema
 from src.models import Chat, ChatType, Message, ReadStatus, User
-
-
-async def get_direct_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat | None:
-    query = (
-        select(Chat)
-        .where(
-            and_(
-                Chat.chat_type == ChatType.DIRECT,
-                Chat.users.contains(initiator_user),
-                Chat.users.contains(recipient_user),
-                Chat.is_active.is_(True),
-            )
-        )
-        .options(selectinload(Chat.users))
-    )
-    result = await db_session.execute(query)
-    # sqlalchemy.exc.MultipleResultsFound
-    chat: Chat | None = result.scalar_one_or_none()
-
-    return chat
 
 
 async def create_direct_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat:
@@ -41,6 +21,21 @@ async def create_direct_chat(db_session: AsyncSession, *, initiator_user: User, 
     recipient_read_status = ReadStatus(chat_id=chat.id, user_id=recipient_user.id, last_read_message_id=0)
     db_session.add_all([initiator_read_status, recipient_read_status])
     await db_session.commit()
+
+    return chat
+
+
+async def get_direct_chat_by_users(
+    db_session: AsyncSession, *, initiator_user: User, recipient_user: User
+) -> Chat | None:
+    query = select(Chat).where(
+        and_(
+            Chat.chat_type == ChatType.DIRECT, Chat.users.contains(initiator_user), Chat.users.contains(recipient_user)
+        )
+    )
+
+    result = await db_session.execute(query)
+    chat: Chat | None = result.scalar_one_or_none()
 
     return chat
 
@@ -65,15 +60,6 @@ async def get_user_by_guid(db_session: AsyncSession, *, user_guid: UUID) -> User
     return user
 
 
-# TODO: Should I differentiate message sending based on chat type?!
-async def send_message_to_chat(db_session: AsyncSession, *, content: str, chat_id: int, user_id: int) -> Message:
-    message = Message(content=content, chat_id=chat_id, user_id=user_id)
-    db_session.add(message)
-    await db_session.commit()
-
-    return message
-
-
 async def get_user_direct_chats(db_session: AsyncSession, *, current_user: User) -> list[Chat]:
     query = (
         select(Chat)
@@ -85,7 +71,7 @@ async def get_user_direct_chats(db_session: AsyncSession, *, current_user: User)
             )
         )
         .options(selectinload(Chat.users), selectinload(Chat.read_statuses))
-    )
+    ).order_by(Chat.updated_at.desc())
     result = await db_session.execute(query)
 
     chats: list[Chat] = result.scalars().all()
@@ -111,10 +97,12 @@ async def get_chat_messages(
 
     # assuming only two read statuses
     for read_status in chat.read_statuses:
-        if read_status.user_id == user_id:
+        if read_status.user_id != user_id:
+            other_user_last_read_message_id = read_status.last_read_message_id
+        else:
             my_last_read_message_id = read_status.last_read_message_id
 
-    last_read_message = await db_session.get(Message, my_last_read_message_id)
+    last_read_message = await db_session.get(Message, other_user_last_read_message_id)
     get_message_schemas = [
         GetMessageSchema(
             message_guid=message.guid,
@@ -122,7 +110,8 @@ async def get_chat_messages(
             created_at=message.created_at,
             chat_guid=message.chat.guid,
             user_guid=message.user.guid,
-            is_read=message.id <= my_last_read_message_id,
+            is_read=message.id
+            <= (other_user_last_read_message_id if message.user.id == user_id else my_last_read_message_id),
         )
         for message in messages
     ]
@@ -174,9 +163,7 @@ async def get_older_chat_messages(
 
     # assuming only two read statuses
     for read_status in chat.read_statuses:
-        if read_status.user_id == user_id:
-            my_last_read_message_id = read_status.last_read_message_id
-        else:
+        if read_status.user_id != user_id:
             other_last_read_message_id = read_status.last_read_message_id
 
     get_message_schemas = [
@@ -187,7 +174,6 @@ async def get_older_chat_messages(
             chat_guid=message.chat.guid,
             user_guid=message.user.guid,
             is_read=message.id <= other_last_read_message_id,
-            is_new=message.id > my_last_read_message_id,
         )
         for message in older_messages
     ]
@@ -196,20 +182,24 @@ async def get_older_chat_messages(
     return get_message_schemas, has_more_messages
 
 
-async def add_read_status_to_chat(db_session: AsyncSession, *, current_user: User, chat: Chat) -> tuple[bool, int]:
+async def add_new_messages_stats_to_direct_chat(
+    db_session: AsyncSession, *, current_user: User, chat: Chat
+) -> GetDirectChatSchema:
+    # new non-model (chat) fields are added
     has_new_messages: bool = False
     new_messages_count: int
 
     # assuming chat has two read statuses
+    # current user's read status is used to determine new messages count
     for read_status in chat.read_statuses:
         # own read status -> for new messages
         if read_status.user_id == current_user.id:
-            own_last_read_message_id = read_status.last_read_message_id
-    # get all user's active messages that have smaller last_read_message_id
+            my_last_read_message_id = read_status.last_read_message_id
+
     new_messages_query = select(func.count()).where(
         and_(
             Message.user_id != current_user.id,
-            Message.id > own_last_read_message_id,
+            Message.id > my_last_read_message_id,
             Message.is_active.is_(True),
             Message.chat_id == chat.id,
         )
@@ -219,7 +209,7 @@ async def add_read_status_to_chat(db_session: AsyncSession, *, current_user: Use
     if new_messages_count:
         has_new_messages = True
 
-    return GetDirectChatsSchema(
+    return GetDirectChatSchema(
         chat_guid=chat.guid,
         chat_type=chat.chat_type,
         created_at=chat.created_at,

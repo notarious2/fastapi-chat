@@ -87,7 +87,8 @@ async def websocket_endpoint(
                 await socket_manager.send_error("You have sent too many requests", websocket)
 
     except WebSocketDisconnect:
-        for chat_guid in chats.keys():
+        # unsusbscribe user from all chats
+        for chat_guid in chats:
             await socket_manager.remove_user_from_chat(chat_guid, websocket)
             await mark_user_as_offline(
                 cache=cache, socket_manager=socket_manager, current_user=current_user, chat_guid=chat_guid

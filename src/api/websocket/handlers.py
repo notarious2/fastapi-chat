@@ -6,9 +6,10 @@ from fastapi import WebSocket
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.websocket.schemas import MessageReadSchema, ReceiveMessageSchema, SendMessageSchema, UserTypingSchema
-from src.api.websocket.services import get_message_by_guid, get_read_status, mark_last_read_message, mark_user_as_online
+from src.api.websocket.services import get_message_by_guid, mark_last_read_message, mark_user_as_online
 from src.managers.websocket_manager import WebSocketManager
 from src.models import Chat, Message, ReadStatus, User
+from src.utils import clear_cache_for_get_direct_chats, clear_cache_for_get_messages
 
 logger = logging.getLogger(__name__)
 
@@ -44,16 +45,6 @@ async def new_message_handler(
         db_session.add(message)
         await db_session.flush()  # to generate id
 
-        # should set last read message to sent message for the user who sent it
-        read_status: ReadStatus | None = await get_read_status(db_session, user_id=current_user.id, chat_id=chat_id)
-
-        if not read_status:
-            await socket_manager.send_error(
-                f"[new_message] Read Status for user {current_user.username} does not exist", websocket
-            )
-        read_status.last_read_message_id = message.id
-        db_session.add(read_status)
-
         # Update the updated_at field of the chat
         chat = await db_session.get(Chat, chat_id)
         chat.updated_at = datetime.now()
@@ -69,6 +60,11 @@ async def new_message_handler(
     await mark_user_as_online(
         cache=cache, current_user=current_user, socket_manager=socket_manager, chat_guid=chat_guid
     )
+    # clear cache for all users (display last read message)
+    for user in chat.users:
+        await clear_cache_for_get_direct_chats(cache=cache, user=user)
+    # clear cache for getting messages
+    await clear_cache_for_get_messages(cache=cache, chat_guid=chat_guid)
 
     send_message_schema = SendMessageSchema(
         message_guid=message.guid,
@@ -128,6 +124,8 @@ async def message_read_handler(
         await mark_user_as_online(
             cache=cache, current_user=current_user, socket_manager=socket_manager, chat_guid=chat_guid
         )
+        # clear cache for getting messages
+        await clear_cache_for_get_messages(cache=cache, chat_guid=chat_guid)
 
         await socket_manager.broadcast_to_chat(chat_guid, outgoing_message)
 

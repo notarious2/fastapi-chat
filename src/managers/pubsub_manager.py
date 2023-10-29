@@ -8,7 +8,7 @@ from src.config import settings
 class RedisPubSubManager:
     def __init__(self):
         self.pool = aioredis.ConnectionPool(
-            host=settings.REDIS_PORT, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD, db=1
+            host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD, db=1
         )
         self.pubsub = None
 

@@ -26,6 +26,7 @@ class GlobalSettings(BaseSettings):
     REDIS_HOST: str = "chat-redis"
     REDIS_PORT: str | int = 6379
     REDIS_PASSWORD: str | None = None
+    REDIS_CACHE_EXPIRATION_SECONDS: int = 60 * 30
 
     # websocket
     # user status
