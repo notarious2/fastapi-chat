@@ -7,6 +7,7 @@ from fastapi_pagination import add_pagination
 
 from src.api.authentication.router import auth_router
 from src.api.chat.router import chat_router
+from src.api.contact.router import contact_router
 from src.api.registration.router import account_router
 from src.api.websocket.router import websocket_router
 from src.config import settings
@@ -17,6 +18,7 @@ app.include_router(websocket_router)
 app.include_router(account_router)
 app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(contact_router)
 
 
 app.add_middleware(
