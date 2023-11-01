@@ -22,6 +22,7 @@ from src.api.chat.services import (
     get_chat_messages,
     get_direct_chat_by_users,
     get_older_chat_messages,
+    get_unread_messages_count,
     get_user_by_guid,
     get_user_direct_chats,
 )
@@ -59,8 +60,6 @@ async def create_direct_chat_view(
     return chat
 
 
-# applies to both direct and group chats
-# TODO: Find all path where to nullify the keys
 @chat_router.get("/chat/{chat_guid}/messages/", summary="Get user's chat messages")
 async def get_user_messages_in_chat(
     chat_guid: UUID,
@@ -69,17 +68,24 @@ async def get_user_messages_in_chat(
     current_user: User = Depends(get_current_user),
     cache: aioredis.Redis = Depends(get_cache),
 ):
-    cache_key = f"messages_{chat_guid}_{size}"
+    chat: Chat | None = await get_chat_by_guid(db_session, chat_guid=chat_guid)
+
+    if not chat:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat with provided guid does not exist")
+
+    # determine the number of unread messages
+    unread_messages_count: int = await get_unread_messages_count(db_session, user_id=current_user.id, chat=chat)
+
+    # get larger of provided messages size or unread messages
+    size: int = max(size, unread_messages_count)
+
+    # determine cache key
+    cache_key: str = f"messages_{chat_guid}_{size}"
 
     # return cached chat messages if key exists
     if cached_chat_messages := await cache.get(cache_key):
         print("Cache: Messages")
         return json.loads(cached_chat_messages)
-
-    chat: Chat | None = await get_chat_by_guid(db_session, chat_guid=chat_guid)
-
-    if not chat:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat with provided guid does not exist")
 
     if current_user not in chat.users:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You don't have access to this chat")

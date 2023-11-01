@@ -30,6 +30,7 @@ services:
       - postgres_data:/var/lib/postgresql/data/
     networks:
       - chat-net
+    command: ["postgres", "-c", "log_statement=all"]  # show logs
 
   redis-service:
     image: redis

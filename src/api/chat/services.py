@@ -218,3 +218,26 @@ async def add_new_messages_stats_to_direct_chat(
         has_new_messages=has_new_messages,
         new_messages_count=new_messages_count,
     )
+
+
+async def get_unread_messages_count(db_session: AsyncSession, *, user_id: int, chat: Chat) -> int:
+    # Get the user's last read message ID in the chat
+    user_read_status = next((rs for rs in chat.read_statuses if rs.user_id == user_id), None)
+    if not user_read_status:
+        return 0  # User has no read status in this chat
+
+    user_last_read_message_id = user_read_status.last_read_message_id
+
+    # Count the number of unread messages for the user
+    query = select(func.count()).where(
+        and_(
+            Message.chat_id == chat.id,
+            Message.is_active.is_(True),
+            Message.id > user_last_read_message_id,
+        )
+    )
+
+    result = await db_session.execute(query)
+    unread_messages_count = result.scalar()
+
+    return unread_messages_count
