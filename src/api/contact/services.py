@@ -1,10 +1,11 @@
 from sqlalchemy import and_, not_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.api.contact.schemas import GetUserSchema
 from src.models import User
 
 
-async def get_all_users(db_session: AsyncSession, *, current_user: User) -> list[User]:
+async def get_all_users(db_session: AsyncSession, *, current_user: User) -> list[GetUserSchema]:
     query = (
         select(User).where(
             and_(

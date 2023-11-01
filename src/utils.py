@@ -28,3 +28,9 @@ async def clear_cache_for_get_direct_chats(cache: aioredis.Redis, user: User):
     keys_found = cache.scan_iter(match=pattern_for_get_direct_chats)
     async for key in keys_found:
         await cache.delete(key)
+
+
+async def clear_cache_for_all_users(cache: aioredis.Redis):
+    keys_found = cache.scan_iter(match="all_users")
+    async for key in keys_found:
+        await cache.delete(key)
