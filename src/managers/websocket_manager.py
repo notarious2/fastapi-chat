@@ -9,8 +9,9 @@ from src.managers.pubsub_manager import RedisPubSubManager
 class WebSocketManager:
     def __init__(self):
         self.handlers: dict = {}
-        self.chats: dict = {}  # stores WebSocket connections in different chats
+        self.chats: dict = {}  # stores user WebSocket connections by chat {"chat_guid": {ws1, ws2}, ...}
         self.pubsub_client = RedisPubSubManager()
+        self.chat_ids: dict = {}  # stores chat_guid: chat_id combination
 
     def handler(self, message_type):
         def decorator(func):

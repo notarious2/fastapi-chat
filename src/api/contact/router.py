@@ -20,7 +20,7 @@ async def get_contacts_view(
     current_user: User = Depends(get_current_user),
     cache: aioredis.Redis = Depends(get_cache),
 ):
-    cache_key = "all_users"
+    cache_key = f"{current_user.guid}_all_users"
     # return cached users list if key exists
     if cached_all_users := await cache.get(cache_key):
         print("Cache: Users")

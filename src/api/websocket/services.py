@@ -19,19 +19,20 @@ async def check_user_statuses(cache: aioredis.Redis, socket_manager: WebSocketMa
     while True:
         is_online = await cache.exists(f"user:{current_user.id}:status")
         # make sure to translate to all chats that the user is in
-
+        if not chats:
+            return
         user_chat_guids = set(chats.keys()) & {str(chat.guid) for chat in current_user.chats}
 
         if is_online:
             for chat_guid in user_chat_guids:
-                # Update the user's status as "online" in the frontend
+                # Update the user's status as "online" on the frontend
                 await socket_manager.broadcast_to_chat(
                     chat_guid, {"type": "status", "username": current_user.username, "status": "online"}
                 )
 
         else:
             for chat_guid in user_chat_guids:
-                # Update the user's status as "inactive" in the frontend
+                # Update the user's status as "inactive" on the frontend
                 await socket_manager.broadcast_to_chat(
                     chat_guid, {"type": "status", "username": current_user.username, "status": "inactive"}
                 )
@@ -101,6 +102,9 @@ async def get_read_status(db_session: AsyncSession, *, user_id: int, chat_id: in
 
 
 async def get_user_active_direct_chats(db_session: AsyncSession, *, current_user: User) -> Dict[UUID, int] | None:
+    """
+    Return dictionary containing chat_guid: chat_id for a given user
+    """
     direct_chats_dict = dict()
     query = (
         select(Chat)
@@ -116,3 +120,14 @@ async def get_user_active_direct_chats(db_session: AsyncSession, *, current_user
         return direct_chats_dict
     else:
         return None
+
+
+async def get_chat_id_by_guid(db_session: AsyncSession, *, chat_guid: UUID) -> int | None:
+    query = select(Chat.id).where(Chat.guid == chat_guid)
+    result = await db_session.execute(query)
+    chat_id: int | None = result.scalar_one_or_none()
+
+    if not chat_id:
+        return None
+
+    return chat_id
