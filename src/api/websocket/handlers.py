@@ -6,7 +6,12 @@ from fastapi import WebSocket
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.websocket.schemas import MessageReadSchema, ReceiveMessageSchema, SendMessageSchema, UserTypingSchema
-from src.api.websocket.services import get_message_by_guid, mark_last_read_message, mark_user_as_online
+from src.api.websocket.services import (
+    get_chat_id_by_guid,
+    get_message_by_guid,
+    mark_last_read_message,
+    mark_user_as_online,
+)
 from src.managers.websocket_manager import WebSocketManager
 from src.models import Chat, Message, ReadStatus, User
 from src.utils import clear_cache_for_get_direct_chats, clear_cache_for_get_messages
@@ -30,9 +35,19 @@ async def new_message_handler(
     message_schema = ReceiveMessageSchema(**incoming_message)
     chat_guid: str = str(message_schema.chat_guid)
 
-    if chat_guid not in chats:
-        await socket_manager.send_error("Chat has not been added", websocket)
-        return
+    if not chats or chat_guid not in chats:
+        chat_id: int | None = await get_chat_id_by_guid(db_session, chat_guid=chat_guid)
+        if chat_id:
+            chats = chats or dict()
+            chats[chat_guid] = chat_id
+            await socket_manager.add_user_to_chat(chat_guid, websocket)
+            await clear_cache_for_get_messages(cache=cache, chat_guid=chat_guid)
+            await clear_cache_for_get_direct_chats(cache=cache, user=current_user)
+            # TODO: Clear cache for get users
+
+        else:
+            await socket_manager.send_error("Chat has not been added", websocket)
+            return
 
     chat_id = chats.get(chat_guid)
     try:
@@ -46,12 +61,14 @@ async def new_message_handler(
         await db_session.flush()  # to generate id
 
         # Update the updated_at field of the chat
-        chat = await db_session.get(Chat, chat_id)
+        chat: Chat = await db_session.get(Chat, chat_id)
         chat.updated_at = datetime.now()
         db_session.add(chat)
 
         await db_session.commit()
         await db_session.refresh(message, attribute_names=["user", "chat"])
+        await db_session.refresh(chat, attribute_names=["users"])
+
     except Exception as exc_info:
         await db_session.rollback()
         logger.exception(f"[new_message] Exception, rolling back session, detail: {exc_info}")
@@ -76,6 +93,9 @@ async def new_message_handler(
         is_new=True,
     )
     outgoing_message: dict = send_message_schema.model_dump_json()
+    print("BROADCASTING MESSAGE", message.content)
+    print("CHATS", socket_manager.chats)
+
     await socket_manager.broadcast_to_chat(chat_guid, outgoing_message)
 
 
@@ -145,7 +165,7 @@ async def user_typing_handler(
     user_typing_schema = UserTypingSchema(**incoming_message)
     chat_guid: str = str(user_typing_schema.chat_guid)
     outgoing_message: dict = user_typing_schema.model_dump_json()
-    if chat_guid not in chats:
+    if chats and chat_guid not in chats:
         await socket_manager.send_error(
             f"[user_typing] Chat with provided guid [{chat_guid}] does not exist", websocket
         )

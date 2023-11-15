@@ -39,21 +39,22 @@ async def websocket_endpoint(
     # Update the user's status in Redis with a new TTL
     await mark_user_as_online(cache=cache, current_user=current_user)
 
-    # keep track of open redis pub/sub channels holds guid/id key-value pairs
+    # holds guid/id key-value pair to easily get chat_id based on chat_guid
+    # different from self.chats in socket manager, should probably rename
     chats = dict()
     # get all users direct chats and subscribe # TODO: Generalize for group chats?
-    if direct_chats := await get_user_active_direct_chats(db_session, current_user=current_user):
-        chats = direct_chats
+    if chats := await get_user_active_direct_chats(db_session, current_user=current_user):
+        # subscribe this websocket instance to all Redis PubSub channels
         for chat_guid in chats.keys():
-            # subscribe this websocket instance to many Redis PubSub channels
             await socket_manager.add_user_to_chat(chat_guid, websocket)
-
+    print("CHATS INITIAL", chats)
     asyncio.create_task(check_user_statuses(cache, socket_manager, current_user, chats))
     try:
         while True:
             try:
                 incoming_message = await websocket.receive_json()
                 await ratelimit(websocket)
+                print("MY CHATS", chats)
 
                 message_type = incoming_message.get("type")
                 if not message_type:
@@ -74,6 +75,8 @@ async def websocket_endpoint(
                     chats=chats,
                     current_user=current_user,
                 )
+                print("MY CHATS AFTER HANDLER {handler}", chats)
+
             except (JSONDecodeError, AttributeError) as excinfo:
                 logger.exception(f"Websocket error, detail: {excinfo}")
                 await socket_manager.send_error("Wrong message format", websocket)
@@ -87,7 +90,7 @@ async def websocket_endpoint(
                 await socket_manager.send_error("You have sent too many requests", websocket)
 
     except WebSocketDisconnect:
-        # unsusbscribe user from all chats
+        # unsubscribe user from all chats
         for chat_guid in chats:
             await socket_manager.remove_user_from_chat(chat_guid, websocket)
             await mark_user_as_offline(
