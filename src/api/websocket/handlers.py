@@ -30,6 +30,7 @@ async def new_message_handler(
     incoming_message: dict,
     chats: dict,
     current_user: User,
+    cache_enabled: bool,
     **kwargs,
 ):
     message_schema = ReceiveMessageSchema(**incoming_message)
@@ -41,8 +42,9 @@ async def new_message_handler(
             chats = chats or dict()
             chats[chat_guid] = chat_id
             await socket_manager.add_user_to_chat(chat_guid, websocket)
-            await clear_cache_for_get_messages(cache=cache, chat_guid=chat_guid)
-            await clear_cache_for_get_direct_chats(cache=cache, user=current_user)
+            if cache_enabled:
+                await clear_cache_for_get_messages(cache=cache, chat_guid=chat_guid)
+                await clear_cache_for_get_direct_chats(cache=cache, user=current_user)
             # TODO: Clear cache for get users
 
         else:
@@ -78,10 +80,11 @@ async def new_message_handler(
         cache=cache, current_user=current_user, socket_manager=socket_manager, chat_guid=chat_guid
     )
     # clear cache for all users (display last read message)
-    for user in chat.users:
-        await clear_cache_for_get_direct_chats(cache=cache, user=user)
-    # clear cache for getting messages
-    await clear_cache_for_get_messages(cache=cache, chat_guid=chat_guid)
+    if cache_enabled:
+        for user in chat.users:
+            await clear_cache_for_get_direct_chats(cache=cache, user=user)
+        # clear cache for getting messages
+        await clear_cache_for_get_messages(cache=cache, chat_guid=chat_guid)
 
     send_message_schema = SendMessageSchema(
         message_guid=message.guid,
@@ -93,8 +96,6 @@ async def new_message_handler(
         is_new=True,
     )
     outgoing_message: dict = send_message_schema.model_dump_json()
-    print("BROADCASTING MESSAGE", message.content)
-    print("CHATS", socket_manager.chats)
 
     await socket_manager.broadcast_to_chat(chat_guid, outgoing_message)
 
@@ -107,9 +108,9 @@ async def message_read_handler(
     chats: dict,
     current_user: User,
     cache: aioredis.Redis,
+    cache_enabled: bool,
     **kwargs,
 ):
-    print("MARKING MESSAGE AS READ", current_user, incoming_message)
     message_read_schema = MessageReadSchema(**incoming_message)
 
     message_guid = str(message_read_schema.message_guid)
@@ -128,7 +129,6 @@ async def message_read_handler(
     chat_id = chats.get(chat_guid)
 
     # Mark message read for own user
-    print(f"Marking message {message.content} read for user {current_user.username}")
     read_status: ReadStatus | None = await mark_last_read_message(
         db_session, user_id=current_user.id, chat_id=chat_id, last_read_message_id=message.id
     )
@@ -144,8 +144,9 @@ async def message_read_handler(
         await mark_user_as_online(
             cache=cache, current_user=current_user, socket_manager=socket_manager, chat_guid=chat_guid
         )
-        # clear cache for getting messages
-        await clear_cache_for_get_messages(cache=cache, chat_guid=chat_guid)
+        if cache_enabled:
+            # clear cache for getting messages
+            await clear_cache_for_get_messages(cache=cache, chat_guid=chat_guid)
 
         await socket_manager.broadcast_to_chat(chat_guid, outgoing_message)
 

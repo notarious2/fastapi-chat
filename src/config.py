@@ -12,17 +12,18 @@ class GlobalSettings(BaseSettings):
     DB_SCHEMA: str = "chat"
 
     # authentication related
-    JWT_ACCESS_SECRET_KEY: str = os.environ.get("JWT_ACCESS_SECRET_KEY", "9d9bc4d77ac3a6fce1869ec8222729d2")
-    JWT_REFRESH_SECRET_KEY: str = os.environ.get("JWT_REFRESH_SECRET_KEY", "fdc5635260b464a0b8e12835800c9016")
-    ENCRYPTION_ALGORITHM: str = os.environ.get("ENCRYPTION_ALGORITHM", "HS256")
+    JWT_ACCESS_SECRET_KEY: str = "9d9bc4d77ac3a6fce1869ec8222729d2"
+    JWT_REFRESH_SECRET_KEY: str = "fdc5635260b464a0b8e12835800c9016"
+    ENCRYPTION_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     NEW_ACCESS_TOKEN_EXPIRE_MINUTES: int = 120
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24
 
     # admin
-    ADMIN_SECRET_KEY: str = os.environ.get("ADMIN_SECRET_KEY", "Hv9LGqARc473ceBUYDw1FR0QaXOA3Ky4")
+    ADMIN_SECRET_KEY: str = "Hv9LGqARc473ceBUYDw1FR0QaXOA3Ky4"
 
-    # redis
+    # redis for caching
+    REDIS_CACHE_ENABLED: bool = True
     REDIS_HOST: str = "chat-redis"
     REDIS_PORT: str | int = 6379
     REDIS_PASSWORD: str | None = None

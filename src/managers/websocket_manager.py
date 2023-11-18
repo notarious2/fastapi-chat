@@ -41,18 +41,23 @@ class WebSocketManager:
         self.chats[chat_guid].remove(websocket)
         if len(self.chats[chat_guid]) == 0:
             del self.chats[chat_guid]
+            print("Removing user from PubSub channel", chat_guid)
             await self.pubsub_client.unsubscribe(chat_guid)
 
+    # https://github.com/redis/redis-py/issues/2523
     async def _pubsub_data_reader(self, pubsub_subscriber):
-        while True:
-            message = await pubsub_subscriber.get_message(ignore_subscribe_messages=True)
-            if message is not None:
-                chat_guid = message["channel"].decode("utf-8")
-                sockets = self.chats.get(chat_guid)
-                if sockets:
-                    for socket in sockets:
-                        data = message["data"].decode("utf-8")
-                        await socket.send_text(data)
+        try:
+            while True:
+                message = await pubsub_subscriber.get_message(ignore_subscribe_messages=True)
+                if message is not None:
+                    chat_guid = message["channel"].decode("utf-8")
+                    sockets = self.chats.get(chat_guid)
+                    if sockets:
+                        for socket in sockets:
+                            data = message["data"].decode("utf-8")
+                            await socket.send_text(data)
+        except Exception as exc:
+            print("Exception Occurred", exc)
 
     async def send_error(self, message: str, websocket: WebSocket):
         await websocket.send_json({"status": "error", "message": message})

@@ -54,6 +54,10 @@ async def get_current_user(
     return user
 
 
+async def get_cache_setting():
+    return settings.REDIS_CACHE_ENABLED
+
+
 pool = aioredis.ConnectionPool(
     host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD, db=1
 )
