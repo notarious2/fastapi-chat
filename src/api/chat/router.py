@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Annotated
 from uuid import UUID
 
@@ -27,10 +28,12 @@ from src.api.chat.services import (
 )
 from src.config import settings
 from src.database import get_async_session
-from src.dependencies import get_cache, get_current_user
+from src.dependencies import get_cache, get_cache_setting, get_current_user
 from src.models import Chat, Message, User
 
 chat_router = APIRouter(tags=["Chat Management"])
+
+logger = logging.getLogger(__name__)
 
 
 @chat_router.post("/chat/direct/", summary="Create a direct chat", response_model=DisplayDirectChatSchema)
@@ -67,6 +70,7 @@ async def get_user_messages_in_chat(
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
     cache: aioredis.Redis = Depends(get_cache),
+    cache_enabled: bool = Depends(get_cache_setting),
 ):
     chat: Chat | None = await get_chat_by_guid(db_session, chat_guid=chat_guid)
 
@@ -82,10 +86,11 @@ async def get_user_messages_in_chat(
     # determine cache key
     cache_key: str = f"messages_{chat_guid}_{size}"
 
-    # return cached chat messages if key exists
-    if cached_chat_messages := await cache.get(cache_key):
-        print("Cache: Messages")
-        return json.loads(cached_chat_messages)
+    if cache_enabled:
+        # return cached chat messages if key exists
+        if cached_chat_messages := await cache.get(cache_key):
+            logger.warning("Cache: Messages")
+            return json.loads(cached_chat_messages)
 
     if current_user not in chat.users:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You don't have access to this chat")
@@ -100,8 +105,9 @@ async def get_user_messages_in_chat(
     if last_read_message:
         response.last_read_message = last_read_message
 
-    # Store the chat in the cache with a TTL
-    await cache.set(cache_key, response.model_dump_json(), ex=settings.REDIS_CACHE_EXPIRATION_SECONDS)
+    if cache_enabled:
+        # Store the chat in the cache with a TTL
+        await cache.set(cache_key, response.model_dump_json(), ex=settings.REDIS_CACHE_EXPIRATION_SECONDS)
 
     return response
 
@@ -112,11 +118,12 @@ async def get_user_chats_view(
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
     cache: aioredis.Redis = Depends(get_cache),
+    cache_enabled: bool = Depends(get_cache_setting),
 ):
     # return cached direct chats if key exists
     cache_key = f"direct_chats_{current_user.guid}"
     if cached_direct_chats := await cache.get(cache_key):
-        print("Cache: Chats")
+        logger.warning("Cache: Chats")
         return json.loads(cached_direct_chats)
 
     chats: list[Chat] = await get_user_direct_chats(db_session, current_user=current_user)
@@ -128,8 +135,9 @@ async def get_user_chats_view(
 
     response = GetDirectChatsSchema(root=direct_chats)
 
-    # Store response in the cache with a TTL
-    await cache.set(cache_key, response.model_dump_json(), ex=settings.REDIS_CACHE_EXPIRATION_SECONDS)
+    if cache_enabled:
+        # Store response in the cache with a TTL
+        await cache.set(cache_key, response.model_dump_json(), ex=settings.REDIS_CACHE_EXPIRATION_SECONDS)
 
     return response
 

@@ -43,6 +43,12 @@ async def startup():
     await FastAPILimiter.init(redis)
 
 
+# Error displayed on shutdown (will be fixed in later versions): https://github.com/python/cpython/issues/109538
+@app.on_event("shutdown")
+async def shutdown_event():
+    print("Shutdown complete.")
+
+
 @app.get("/messages/", dependencies=[Depends(RateLimiter(times=2, seconds=5))])
 async def get_messages():
     message_history = []

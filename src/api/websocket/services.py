@@ -27,14 +27,26 @@ async def check_user_statuses(cache: aioredis.Redis, socket_manager: WebSocketMa
             for chat_guid in user_chat_guids:
                 # Update the user's status as "online" on the frontend
                 await socket_manager.broadcast_to_chat(
-                    chat_guid, {"type": "status", "username": current_user.username, "status": "online"}
+                    chat_guid,
+                    {
+                        "type": "status",
+                        "username": current_user.username,
+                        "user_guid": str(current_user.guid),
+                        "status": "online",
+                    },
                 )
 
         else:
             for chat_guid in user_chat_guids:
                 # Update the user's status as "inactive" on the frontend
                 await socket_manager.broadcast_to_chat(
-                    chat_guid, {"type": "status", "username": current_user.username, "status": "inactive"}
+                    chat_guid,
+                    {
+                        "type": "status",
+                        "username": current_user.username,
+                        "user_guid": str(current_user.guid),
+                        "status": "inactive",
+                    },
                 )
         await asyncio.sleep(settings.SECONDS_TO_SEND_USER_STATUS)  # Sleep for 60 seconds before the next check
 
@@ -44,7 +56,8 @@ async def mark_user_as_offline(
 ):
     await cache.delete(f"user:{current_user.id}:status")
     await socket_manager.broadcast_to_chat(
-        chat_guid, {"type": "status", "username": current_user.username, "status": "offline"}
+        chat_guid,
+        {"type": "status", "username": current_user.username, "user_guid": str(current_user.guid), "status": "offline"},
     )
 
 
@@ -54,7 +67,13 @@ async def mark_user_as_online(
     await cache.set(f"user:{current_user.id}:status", "online", ex=60)  # 2 hours
     if socket_manager and chat_guid:
         await socket_manager.broadcast_to_chat(
-            chat_guid, {"type": "status", "username": current_user.username, "status": "online"}
+            chat_guid,
+            {
+                "type": "status",
+                "username": current_user.username,
+                "user_guid": str(current_user.guid),
+                "status": "online",
+            },
         )
 
 
