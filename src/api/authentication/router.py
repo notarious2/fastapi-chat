@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Annotated
 
 import jwt
@@ -11,6 +11,7 @@ from src.api.authentication.services import authenticate_user, get_user_by_login
 from src.api.authentication.utils import create_access_token, create_refresh_token
 from src.config import settings
 from src.database import get_async_session
+from src.dependencies import get_current_user
 from src.models import User
 
 auth_router = APIRouter(tags=["Authentication"])
@@ -99,3 +100,28 @@ async def get_new_access_token_from_refresh_token(
     response.set_cookie(key="access_token", value=new_access_token, httponly=True, samesite="none", secure=True)
 
     return "Access token has been successfully refreshed"
+
+
+@auth_router.get("/logout", summary="Logout by removing http-only cookies")
+async def logout(response: Response, current_user: User = Depends(get_current_user)):
+    expires = datetime.utcnow() + timedelta(seconds=1)
+    response.set_cookie(
+        key="access_token",
+        value="",
+        secure=True,
+        httponly=True,
+        samesite="none",
+        expires=expires.strftime("%a, %d %b %Y %H:%M:%S GMT"),
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value="",
+        secure=True,
+        httponly=True,
+        samesite="none",
+        expires=expires.strftime("%a, %d %b %Y %H:%M:%S GMT"),
+    )
+    # this doesn't work, must expire
+    # response.delete_cookie("access_token")
+    # response.delete_cookie("refresh_token")
+    return "Cookies removed"
