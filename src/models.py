@@ -40,6 +40,9 @@ class User(BaseModel):
     messages: Mapped[List["Message"]] = relationship(back_populates="user")
     read_statuses: Mapped[List["ReadStatus"]] = relationship(back_populates="user")
 
+    def __str__(self):
+        return f"{self.username}"
+
 
 class Chat(BaseModel):
     __tablename__ = "chat"
@@ -51,6 +54,9 @@ class Chat(BaseModel):
     users: Mapped[List["User"]] = relationship(secondary=chat_participant, back_populates="chats", cascade="all,delete")
     messages: Mapped[List["Message"]] = relationship(back_populates="chat", cascade="all,delete")
     read_statuses: Mapped[List["ReadStatus"]] = relationship(back_populates="chat", cascade="all,delete")
+
+    def __str__(self):
+        return f"{self.chat_type.value.title()} {self.guid}"
 
 
 class Message(BaseModel):
@@ -65,6 +71,9 @@ class Message(BaseModel):
     chat: Mapped["Chat"] = relationship(back_populates="messages")
     user: Mapped["User"] = relationship(back_populates="messages")
 
+    def __str__(self):
+        return f"{self.content}"
+
 
 class ReadStatus(RemoveBaseFieldsMixin, BaseModel):
     __tablename__ = "read_status"
@@ -77,3 +86,6 @@ class ReadStatus(RemoveBaseFieldsMixin, BaseModel):
     # to display unread messages for a user in different chats
     chat: Mapped["Chat"] = relationship(back_populates="read_statuses")
     user: Mapped["User"] = relationship(back_populates="read_statuses")
+
+    def __str__(self):
+        return f"User: {self.user_id}, Message: {self.last_read_message_id}"

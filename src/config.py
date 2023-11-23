@@ -33,6 +33,9 @@ class GlobalSettings(BaseSettings):
     # user status
     SECONDS_TO_SEND_USER_STATUS: int = 60
 
+    # admin
+    ADMIN_SECRET_KEY: str = "Hs9LGqARc909ceBUYDw2Fs0QaXOA3Ky4"
+
 
 class TestSettings(GlobalSettings):
     DB_SCHEMA: str = "test"

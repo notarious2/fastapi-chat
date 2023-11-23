@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 from alembic.script import ScriptDirectory
+from src.admin.models import AdminUser  # noqa: F401
 from src.database import DATABASE_URL, BaseModel
 from src.models import Chat, Message, ReadStatus, User, chat_participant  # noqa: F401
 

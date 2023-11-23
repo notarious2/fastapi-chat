@@ -25,6 +25,8 @@ python-multipart = "^0.0.6"
 fastapi-pagination = "^0.12.9"
 fastapi-limiter = "^0.1.5"
 asgi-lifespan = "^2.1.0"
+sqladmin = "^0.16.0"
+itsdangerous = "^2.1.2"
 
 
 [tool.poetry.group.dev.dependencies]

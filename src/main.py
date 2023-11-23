@@ -1,18 +1,22 @@
 import redis.asyncio as aioredis
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_limiter import FastAPILimiter
-from fastapi_limiter.depends import RateLimiter
 from fastapi_pagination import add_pagination
+from sqladmin import Admin
 
+from src.admin.admin import admin_models
+from src.admin.authentication_backend import authentication_backend
 from src.api.authentication.router import auth_router
 from src.api.chat.router import chat_router
 from src.api.contact.router import contact_router
 from src.api.registration.router import account_router
 from src.api.websocket.router import websocket_router
 from src.config import settings
+from src.database import engine
 
 app = FastAPI()
+admin = Admin(app, engine, authentication_backend=authentication_backend)
 
 app.include_router(websocket_router)
 app.include_router(account_router)
@@ -49,18 +53,6 @@ async def shutdown_event():
     print("Shutdown complete.")
 
 
-@app.get("/messages/", dependencies=[Depends(RateLimiter(times=2, seconds=5))])
-async def get_messages():
-    message_history = []
-
-    for i in range(1, 21):
-        if i % 2 == 0:
-            message_history.append({"number": i, "user": "Bekzod", "message": f"My message #{i}"})
-        else:
-            message_history.append({"number": i, "user": "Vasya", "message": f"Hey bro, this is my message #{i}"})
-
-    for i in range(20):
-        message_history.append(i)
-    message_history.reverse()
-
-    return message_history
+# register admin models
+for model in admin_models:
+    admin.add_view(model)
