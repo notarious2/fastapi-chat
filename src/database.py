@@ -7,7 +7,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 from src.config import settings
 
-DATABASE_URL = (
+DATABASE_URL = settings.DATABASE_URL or (
     f"postgresql+asyncpg://"
     f"{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 )

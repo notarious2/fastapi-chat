@@ -10,6 +10,8 @@ class GlobalSettings(BaseSettings):
     DB_PORT: str = "5432"
     DB_NAME: str = "postgres"
     DB_SCHEMA: str = "chat"
+    # specify single database url
+    DATABASE_URL: str | None = None
 
     # authentication related
     JWT_ACCESS_SECRET_KEY: str = "9d9bc4d77ac3a6fce1869ec8222729d2"
