@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "chat_backend"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "3.11.6"
 fastapi = "^0.103.1"
 pydantic = {extras = ["email"], version = "^2.3.0"}
 uvicorn = "^0.23.2"
