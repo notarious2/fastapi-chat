@@ -4,7 +4,6 @@ from typing import AsyncGenerator
 from sqlalchemy import Boolean, DateTime, MetaData, func
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
-from sqlalchemy.pool import NullPool
 
 from src.config import settings
 
@@ -38,11 +37,9 @@ class BaseModel(DeclarativeBase):
         return {field.name: getattr(self, field.name) for field in self.__table__.c}
 
 
-# engine = create_async_engine(
-#     DATABASE_URL, pool_size=40, max_overflow=20, pool_recycle=3600, isolation_level="AUTOCOMMIT"
-# )
-# https://stackoverflow.com/questions/69878772/connection-pool-recycle-in-sqlalchemy-does-not-recycle-idle-stated-connections-f
-engine = create_async_engine(DATABASE_URL, poolclass=NullPool)
+engine = create_async_engine(
+    DATABASE_URL, pool_size=40, max_overflow=20, pool_recycle=3600, isolation_level="AUTOCOMMIT"
+)
 async_session_maker = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
