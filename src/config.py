@@ -28,6 +28,7 @@ class GlobalSettings(BaseSettings):
     REDIS_PORT: str | int = 6379
     REDIS_PASSWORD: str | None = None
     REDIS_CACHE_EXPIRATION_SECONDS: int = 60 * 30
+    REDIS_DB: int = 0
 
     # websocket
     # user status

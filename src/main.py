@@ -37,7 +37,7 @@ add_pagination(app)
 
 
 redis_pool = aioredis.ConnectionPool(
-    host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD, db=2
+    host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD, db=settings.REDIS_DB
 )
 
 

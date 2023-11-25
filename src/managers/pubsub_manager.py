@@ -11,7 +11,7 @@ class RedisPubSubManager:
 
     async def _get_redis_connection(self) -> aioredis.Redis:
         pool = aioredis.ConnectionPool(
-            host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD, db=1
+            host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD, db=settings.REDIS_DB
         )
         return aioredis.Redis(connection_pool=pool)
 
