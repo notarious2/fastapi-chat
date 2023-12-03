@@ -6,7 +6,6 @@ from pydantic_settings import BaseSettings
 class GlobalSettings(BaseSettings):
     # app settings
     ALLOWED_ORIGINS: str = "http://127.0.0.1:3000"
-    # print("HERE", ALLOWED_ORIGINS)
 
     DB_USER: str = "postgres"
     DB_PASSWORD: str = "postgres"

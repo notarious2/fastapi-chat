@@ -10,12 +10,16 @@ from src.utils import clear_cache_for_all_users
 
 account_router = APIRouter(tags=["Account Management"])
 
+# user data and image in one endpoint
+# https://github.com/tiangolo/fastapi/issues/2257
+# https://stackoverflow.com/questions/60127234/how-to-use-a-pydantic-model-with-form-data-in-fastapi
+
 
 @account_router.post("/register/", summary="Register user")
 async def register_user(
-    user_schema: UserRegisterSchema,
     db_session: AsyncSession = Depends(get_async_session),
     cache: aioredis.Redis = Depends(get_cache),
+    user_schema: UserRegisterSchema = Depends(UserRegisterSchema),
 ):
     # check if user with username or email already exists
     user = await get_user_by_email_or_username(db_session, email=user_schema.email, username=user_schema.username)

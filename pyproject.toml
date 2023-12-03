@@ -28,6 +28,7 @@ asgi-lifespan = "^2.1.0"
 sqladmin = "^0.16.0"
 itsdangerous = "^2.1.2"
 gunicorn = "^21.2.0"
+aiofiles = "^23.2.1"
 
 
 [tool.poetry.group.dev.dependencies]

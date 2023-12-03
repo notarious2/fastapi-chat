@@ -1,6 +1,7 @@
 import redis.asyncio as aioredis
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from fastapi_limiter import FastAPILimiter
 from fastapi_pagination import add_pagination
 from sqladmin import Admin
@@ -16,6 +17,8 @@ from src.config import settings
 from src.database import engine
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="src/static"), name="static")
+
 admin = Admin(app, engine, authentication_backend=authentication_backend)
 
 app.include_router(websocket_router)
