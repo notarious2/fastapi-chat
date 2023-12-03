@@ -86,7 +86,7 @@ async def get_new_access_token_from_refresh_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    if not user.is_active:
+    if user.is_deleted:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User is not active",

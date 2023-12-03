@@ -19,7 +19,7 @@ metadata = MetaData(schema=settings.DB_SCHEMA)
 class RemoveBaseFieldsMixin:
     created_at = None
     updated_at = None
-    is_active = None
+    is_deleted = None
 
 
 class BaseModel(DeclarativeBase):
@@ -31,7 +31,7 @@ class BaseModel(DeclarativeBase):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
     def to_dict(self):
         return {field.name: getattr(self, field.name) for field in self.__table__.c}

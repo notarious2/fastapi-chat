@@ -29,7 +29,7 @@ def upgrade() -> None:
         ),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("is_active", sa.Boolean(), nullable=False),
+        sa.Column("is_deleted", sa.Boolean(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         schema="chat",
     )
@@ -46,7 +46,7 @@ def upgrade() -> None:
         sa.Column("is_superuser", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("is_active", sa.Boolean(), nullable=False),
+        sa.Column("is_deleted", sa.Boolean(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("email"),
         sa.UniqueConstraint("guid"),
@@ -77,7 +77,7 @@ def upgrade() -> None:
         sa.Column("chat_id", sa.Integer(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("is_active", sa.Boolean(), nullable=False),
+        sa.Column("is_deleted", sa.Boolean(), nullable=False),
         sa.ForeignKeyConstraint(
             ["chat_id"],
             ["chat.chat.id"],

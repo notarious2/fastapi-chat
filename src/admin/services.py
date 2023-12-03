@@ -22,7 +22,7 @@ async def authenticate_admin_user(db_session: AsyncSession, login_identifier: st
     result = await db_session.execute(query)
     admin: AdminUser | None = result.scalar_one_or_none()
 
-    if not admin or not admin.is_active:
+    if not admin or admin.is_deleted:
         return None
 
     # if admin is found check password
@@ -80,7 +80,7 @@ async def verify_admin_user_by_token(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        if not admin.is_active:
+        if admin.is_deleted:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Admin is not active",

@@ -66,7 +66,7 @@ async def get_user_direct_chats(db_session: AsyncSession, *, current_user: User)
         .where(
             and_(
                 Chat.users.contains(current_user),
-                Chat.is_active.is_(True),
+                Chat.is_deleted.is_(False),
                 Chat.chat_type == ChatType.DIRECT,
             )
         )
@@ -84,7 +84,7 @@ async def get_chat_messages(
 ) -> tuple[list[Chat], bool, Message | None]:
     query = (
         select(Message)
-        .where(and_(Message.chat_id == chat.id, Message.is_active.is_(True)))
+        .where(and_(Message.chat_id == chat.id, Message.is_deleted.is_(False)))
         .order_by(Message.created_at.desc())
         .limit(size + 1)
         .options(selectinload(Message.user), selectinload(Message.chat))
@@ -123,7 +123,7 @@ async def get_active_message_by_guid_and_chat(
     db_session: AsyncSession, *, chat_id: int, message_guid: UUID
 ) -> Message | None:
     query = select(Message).where(
-        and_(Message.guid == message_guid, Message.is_active.is_(True), Message.chat_id == chat_id)
+        and_(Message.guid == message_guid, Message.is_deleted.is_(False), Message.chat_id == chat_id)
     )
 
     result = await db_session.execute(query)
@@ -145,7 +145,7 @@ async def get_older_chat_messages(
         .where(
             and_(
                 Message.chat_id == chat.id,
-                Message.is_active.is_(True),
+                Message.is_deleted.is_(False),
                 Message.created_at < created_at,
             )
         )
@@ -203,7 +203,7 @@ async def add_new_messages_stats_to_direct_chat(
         and_(
             Message.user_id != current_user.id,
             Message.id > my_last_read_message_id,
-            Message.is_active.is_(True),
+            Message.is_deleted.is_(False),
             Message.chat_id == chat.id,
         )
     )
@@ -235,7 +235,7 @@ async def get_unread_messages_count(db_session: AsyncSession, *, user_id: int, c
     query = select(func.count()).where(
         and_(
             Message.chat_id == chat.id,
-            Message.is_active.is_(True),
+            Message.is_deleted.is_(False),
             Message.id > user_last_read_message_id,
         )
     )

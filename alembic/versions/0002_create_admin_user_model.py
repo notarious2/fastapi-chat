@@ -30,7 +30,7 @@ def upgrade() -> None:
         sa.Column("password", sa.String(length=128), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("is_active", sa.Boolean(), nullable=False),
+        sa.Column("is_deleted", sa.Boolean(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("email"),
         sa.UniqueConstraint("username"),
@@ -39,10 +39,10 @@ def upgrade() -> None:
     op.execute(
         text(
             """
-        INSERT INTO chat.admin_user (name, username, email, password, is_active)
+        INSERT INTO chat.admin_user (name, username, email, password, is_deleted)
         VALUES
         ('Bekzod', 'bekzod', 'bekzod@gmail.com',
-        '$2b$12$tp2weomut5QJjYnpA7UIJ.Go5V5QZAPziEzUjl/gK8b41UcjanG6O', True);
+        '$2b$12$tp2weomut5QJjYnpA7UIJ.Go5V5QZAPziEzUjl/gK8b41UcjanG6O', False);
         """
         )
     )

@@ -10,7 +10,7 @@ async def get_all_users(db_session: AsyncSession, *, current_user: User) -> list
         select(User).where(
             and_(
                 not_(User.id == current_user.id),
-                User.is_active.is_(True),
+                User.is_deleted.is_(False),
             )
         )
     ).order_by(User.username)

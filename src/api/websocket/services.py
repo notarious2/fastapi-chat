@@ -78,7 +78,7 @@ async def mark_user_as_online(
 
 
 async def get_message_by_guid(db_session: AsyncSession, *, message_guid: UUID) -> Message | None:
-    query = select(Message).where(and_(Message.guid == message_guid, Message.is_active.is_(True)))
+    query = select(Message).where(and_(Message.guid == message_guid, Message.is_deleted.is_(False)))
     result = await db_session.execute(query)
     message: Message | None = result.scalar_one_or_none()
 
@@ -127,7 +127,7 @@ async def get_user_active_direct_chats(db_session: AsyncSession, *, current_user
     direct_chats_dict = dict()
     query = (
         select(Chat)
-        .where(and_(Chat.chat_type == ChatType.DIRECT, Chat.is_active.is_(True), Chat.users.contains(current_user)))
+        .where(and_(Chat.chat_type == ChatType.DIRECT, Chat.is_deleted.is_(False), Chat.users.contains(current_user)))
         .options(selectinload(Chat.users))
     )
     result = await db_session.execute(query)

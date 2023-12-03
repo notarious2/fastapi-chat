@@ -5,7 +5,7 @@ from src.models import Chat, Message, ReadStatus, User
 
 class ChatAdmin(ModelView, model=Chat):
     icon = "fa-solid fa-comments"
-    column_list = [Chat.id, Chat.chat_type, Chat.users, Chat.guid, Chat.is_active, Chat.created_at]
+    column_list = [Chat.id, Chat.chat_type, Chat.users, Chat.guid, Chat.is_deleted, Chat.created_at]
 
 
 class MessageAdmin(ModelView, model=Message):
@@ -15,7 +15,7 @@ class MessageAdmin(ModelView, model=Message):
 
 class UserAdmin(ModelView, model=User):
     icon = "fa-solid fa-user"
-    column_list = [User.id, User.username, User.guid, User.is_active, User.created_at]
+    column_list = [User.id, User.username, User.guid, User.is_deleted, User.created_at]
 
 
 class ReadStatusAdmin(ModelView, model=ReadStatus):
