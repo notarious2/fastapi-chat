@@ -128,7 +128,7 @@ async def message_read_handler(
         return
     chat_id = chats.get(chat_guid)
 
-    # Mark message read for own user
+    # Mark message read for own user, if none is returned, message is already read
     read_status: ReadStatus | None = await mark_last_read_message(
         db_session, user_id=current_user.id, chat_id=chat_id, last_read_message_id=message.id
     )

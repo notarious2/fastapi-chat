@@ -42,6 +42,9 @@ class GlobalSettings(BaseSettings):
     # admin
     ADMIN_SECRET_KEY: str = "Hs9LGqARc909ceBUYDw2Fs0QaXOA3Ky4"
 
+    # static files
+    STATIC_HOST: str = "http://localhost:8001"
+
 
 class TestSettings(GlobalSettings):
     DB_SCHEMA: str = "test"

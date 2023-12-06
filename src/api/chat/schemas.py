@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from pydantic import UUID4, BaseModel, RootModel
+from pydantic import UUID4, BaseModel, RootModel, field_validator
 
+from src.config import settings
 from src.models import ChatType
 
 
@@ -19,9 +20,16 @@ class UserSchema(BaseModel):
     first_name: str
     last_name: str
     username: str
+    user_image: str | None
 
     class Config:
         from_attributes = True
+
+    @field_validator("user_image")
+    @classmethod
+    def add_image_host(cls, image_url: str | None) -> str:
+        if image_url:
+            return settings.STATIC_HOST + image_url
 
 
 class MessageSchema(BaseModel):
