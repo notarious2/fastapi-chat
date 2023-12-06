@@ -1,3 +1,5 @@
+import os
+
 import aiofiles
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,15 +27,19 @@ async def create_user(db_session: AsyncSession, user_schema: UserRegisterSchema)
         last_name=user_schema.last_name,
         password=hashed_password,
     )
+    # Ensure that directory exists
+    folder_path = "src/static/images/profile/"
+    os.makedirs(folder_path, exist_ok=True)
+
     if uploaded_image := user_schema.uploaded_image:
         file_extension = uploaded_image.filename.split(".")[-1]
-        file_path = f"/static/images/profile/{user_schema.username}.{file_extension}"
-
-        async with aiofiles.open("src" + file_path, "wb") as f:
+        file_path = f"{folder_path}{user_schema.username}.{file_extension}"
+        # load image in chunks
+        async with aiofiles.open(file_path, "wb") as f:
             while chunk := await uploaded_image.read(DEFAULT_CHUNK_SIZE):
                 await f.write(chunk)
 
-        new_user.user_image = file_path
+        new_user.user_image = file_path.replace("src/", "/")
 
     db_session.add(new_user)
 
