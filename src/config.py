@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings
 
 
 class GlobalSettings(BaseSettings):
+    ENVIRONMENT: str = "development"
     # app settings
     ALLOWED_ORIGINS: str = "http://127.0.0.1:3000"
 
@@ -50,10 +51,23 @@ class TestSettings(GlobalSettings):
     DB_SCHEMA: str = "test"
 
 
+class DevelopmentSettings(GlobalSettings):
+    pass
+
+
+class ProductionSettings(GlobalSettings):
+    pass
+
+
 def get_settings():
-    env = os.environ.get("ENVIRONMENT", "development")
+    env = os.environ.get("ENVIRONMENT", "")
     if env == "test":
         return TestSettings()
+    elif env == "development":
+        return DevelopmentSettings()
+    elif env == "production":
+        return ProductionSettings()
+
     return GlobalSettings()
 
 
