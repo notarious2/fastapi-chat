@@ -3,8 +3,7 @@ name = "chat-backend"
 version = "0.1.0"
 description = ""
 authors = ["Bekzod Mirahmedov <notarious2@gmail.com>"]
-readme = "README.md"
-packages = [{include = "chat_backend"}]
+
 
 [tool.poetry.dependencies]
 python = "3.11.6"
@@ -29,6 +28,7 @@ sqladmin = "^0.16.0"
 itsdangerous = "^2.1.2"
 gunicorn = "^21.2.0"
 aiofiles = "^23.2.1"
+boto3 = "^1.33.9"
 
 
 [tool.poetry.group.dev.dependencies]

@@ -45,6 +45,10 @@ class GlobalSettings(BaseSettings):
     # static files
     STATIC_HOST: str = "http://localhost:8001"
 
+    # AWS
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
+
 
 class TestSettings(GlobalSettings):
     DB_SCHEMA: str = "test"

@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11.6-slim
 
 RUN apt-get update && apt-get -y upgrade
 
@@ -21,7 +21,9 @@ WORKDIR /opt/chat
 
 COPY poetry.lock pyproject.toml ./
 RUN pip install "poetry==$POETRY_VERSION"
-RUN poetry export --with dev --output requirements.txt
-RUN pip install --no-deps -r requirements.txt
+# https://stackoverflow.com/questions/74385209/poetry-install-throws-connection-pool-is-full-discarding-connection-pypi-org
+RUN poetry config virtualenvs.create false \
+    && poetry config installer.max-workers 10 \
+    && poetry install --no-interaction --no-ansi -vvv
 
 COPY . .
