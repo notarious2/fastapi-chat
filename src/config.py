@@ -1,10 +1,11 @@
 import os
 
+import boto3
 from pydantic_settings import BaseSettings
 
 
 class GlobalSettings(BaseSettings):
-    ENVIRONMENT: str = "development"
+    ENVIRONMENT: str = "production"
     # app settings
     ALLOWED_ORIGINS: str = "http://127.0.0.1:3000"
 
@@ -29,7 +30,7 @@ class GlobalSettings(BaseSettings):
     ADMIN_SECRET_KEY: str = "Hv9LGqARc473ceBUYDw1FR0QaXOA3Ky4"
 
     # redis for caching
-    REDIS_CACHE_ENABLED: bool = True
+    REDIS_CACHE_ENABLED: bool = False
     REDIS_HOST: str = "chat-redis"
     REDIS_PORT: str | int = 6379
     REDIS_PASSWORD: str | None = None
@@ -56,7 +57,30 @@ class DevelopmentSettings(GlobalSettings):
 
 
 class ProductionSettings(GlobalSettings):
-    pass
+    AWS_ACCESS_KEY_ID: str
+    AWS_SECRET_ACCESS_KEY: str
+    AWS_REGION_NAME: str
+    AWS_IMAGES_BUCKET: str
+
+    @staticmethod
+    def get_aws_client_for_image_upload():
+        if all(
+            (
+                aws_access_key_id := os.environ.get("AWS_ACCESS_KEY_ID"),
+                aws_secret_access_key := os.environ.get("AWS_SECRET_ACCESS_KEY"),
+                region_name := os.environ.get("AWS_REGION_NAME", ""),
+            )
+        ):
+            aws_session = boto3.Session(
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key,
+                region_name=region_name,
+            )
+            s3_resource = aws_session.resource("s3")
+
+            return s3_resource.meta.client
+        else:
+            return None
 
 
 def get_settings():

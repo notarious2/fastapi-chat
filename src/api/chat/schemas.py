@@ -28,8 +28,9 @@ class UserSchema(BaseModel):
     @field_validator("user_image")
     @classmethod
     def add_image_host(cls, image_url: str | None) -> str:
-        if image_url:
+        if image_url and settings.ENVIRONMENT == "development":
             return settings.STATIC_HOST + image_url
+        return image_url
 
 
 class MessageSchema(BaseModel):
