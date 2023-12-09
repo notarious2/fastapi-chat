@@ -30,6 +30,7 @@ from src.config import settings
 from src.database import get_async_session
 from src.dependencies import get_cache, get_cache_setting, get_current_user
 from src.models import Chat, Message, User
+from src.utils import clear_cache_for_get_direct_chats
 
 chat_router = APIRouter(tags=["Chat Management"])
 
@@ -140,6 +141,26 @@ async def get_user_chats_view(
         await cache.set(cache_key, response.model_dump_json(), ex=settings.REDIS_CACHE_EXPIRATION_SECONDS)
 
     return response
+
+
+@chat_router.delete("/chats/direct/{chat_guid}", summary="Delete user's chat", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_direct_chat_view(
+    chat_guid: UUID,
+    db_session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user),
+    cache: aioredis.Redis = Depends(get_cache),
+    cache_enabled: bool = Depends(get_cache_setting),
+):
+    chat: Chat | None = await get_chat_by_guid(db_session, chat_guid=chat_guid)
+
+    if not chat or current_user not in chat.users:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat with provided guid is not found")
+
+    await db_session.delete(chat)
+    await db_session.commit()
+
+    if cache_enabled:
+        await clear_cache_for_get_direct_chats(cache=cache, user=current_user)
 
 
 @chat_router.get(

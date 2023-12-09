@@ -52,7 +52,7 @@ class Chat(BaseModel):
     guid: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), default=uuid.uuid4)
     chat_type: Mapped[str] = mapped_column(Enum(ChatType, inherit_schema=True))
 
-    users: Mapped[List["User"]] = relationship(secondary=chat_participant, back_populates="chats", cascade="all,delete")
+    users: Mapped[List["User"]] = relationship(secondary=chat_participant, back_populates="chats")
     messages: Mapped[List["Message"]] = relationship(back_populates="chat", cascade="all,delete")
     read_statuses: Mapped[List["ReadStatus"]] = relationship(back_populates="chat", cascade="all,delete")
 
