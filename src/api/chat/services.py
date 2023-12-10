@@ -79,6 +79,20 @@ async def get_user_direct_chats(db_session: AsyncSession, *, current_user: User)
     return chats
 
 
+async def direct_chat_exists(db_session: AsyncSession, *, current_user: User, recipient_user: User) -> bool:
+    query = select(Chat.id).where(
+        and_(
+            Chat.chat_type == ChatType.DIRECT,
+            Chat.is_deleted.is_(False),
+            Chat.users.contains(current_user),
+            Chat.users.contains(recipient_user),
+        )
+    )
+    result = await db_session.execute(query)
+    existing_chat = result.scalar_one_or_none()
+    return existing_chat is not None
+
+
 async def get_chat_messages(
     db_session: AsyncSession, *, user_id: int, chat: Chat, size: int
 ) -> tuple[list[Chat], bool, Message | None]:

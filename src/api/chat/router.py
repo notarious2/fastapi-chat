@@ -18,6 +18,7 @@ from src.api.chat.schemas import (
 from src.api.chat.services import (
     add_new_messages_stats_to_direct_chat,
     create_direct_chat,
+    direct_chat_exists,
     get_active_message_by_guid_and_chat,
     get_chat_by_guid,
     get_chat_messages,
@@ -50,13 +51,14 @@ async def create_direct_chat_view(
     # TODO: must check that recipient user is not the same as initiator
     if not recipient_user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="There is no recipient user with provided guid"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"There is no recipient user with provided guid [{recipient_user_guid}]",
         )
 
-    # TODO: Must fix this, returning multiple chats problem
-    # check if chat already exists
-    # if await get_direct_chat_by_users(db_session, initiator_user=current_user, recipient_user=recipient_user):
-    #     raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Chat already exists")
+    if await direct_chat_exists(db_session, current_user=current_user, recipient_user=recipient_user):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=f"Chat with recipient user exists [{recipient_user_guid}]"
+        )
 
     # Check if the data is already in the cache
     chat: Chat = await create_direct_chat(db_session, initiator_user=current_user, recipient_user=recipient_user)

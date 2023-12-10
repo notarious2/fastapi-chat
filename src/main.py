@@ -56,7 +56,7 @@ async def startup():
 # Error displayed on shutdown (will be fixed in later versions): https://github.com/python/cpython/issues/109538
 @app.on_event("shutdown")
 async def shutdown_event():
-    print("Shutdown complete.")
+    ...
 
 
 # register admin models
