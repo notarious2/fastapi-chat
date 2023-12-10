@@ -134,7 +134,10 @@ async def get_user_chats_view(
         await add_new_messages_stats_to_direct_chat(db_session, current_user=current_user, chat=chat) for chat in chats
     ]
 
-    response = GetDirectChatsSchema(root=direct_chats)
+    # calculate total unread messages count for all user's chats
+    total_unread_messages_count = sum(direct_chat.new_messages_count for direct_chat in direct_chats)
+
+    response = GetDirectChatsSchema(chats=direct_chats, total_unread_messages_count=total_unread_messages_count)
 
     if cache_enabled:
         # Store response in the cache with a TTL
@@ -143,7 +146,7 @@ async def get_user_chats_view(
     return response
 
 
-@chat_router.delete("/chats/direct/{chat_guid}", summary="Delete user's chat", status_code=status.HTTP_204_NO_CONTENT)
+@chat_router.delete("/chats/direct/{chat_guid}/", summary="Delete user's chat", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_direct_chat_view(
     chat_guid: UUID,
     db_session: AsyncSession = Depends(get_async_session),

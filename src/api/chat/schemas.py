@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import UUID4, BaseModel, RootModel, field_validator
+from pydantic import UUID4, BaseModel, field_validator
 
 from src.config import settings
 from src.models import ChatType
@@ -64,8 +64,9 @@ class GetDirectChatSchema(BaseModel):
         from_attributes = True
 
 
-class GetDirectChatsSchema(RootModel[GetDirectChatSchema]):
-    root: list[GetDirectChatSchema]
+class GetDirectChatsSchema(BaseModel):
+    chats: list[GetDirectChatSchema]
+    total_unread_messages_count: int
 
 
 class LastReadMessageSchema(BaseModel):
