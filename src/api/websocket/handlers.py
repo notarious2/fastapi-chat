@@ -5,12 +5,19 @@ import redis.asyncio as aioredis
 from fastapi import WebSocket
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.websocket.schemas import MessageReadSchema, ReceiveMessageSchema, SendMessageSchema, UserTypingSchema
+from src.api.websocket.schemas import (
+    AddUserToChatSchema,
+    MessageReadSchema,
+    ReceiveMessageSchema,
+    SendMessageSchema,
+    UserTypingSchema,
+)
 from src.api.websocket.services import (
     get_chat_id_by_guid,
     get_message_by_guid,
     mark_last_read_message,
     mark_user_as_online,
+    send_new_chat_created_ws_message,
 )
 from src.managers.websocket_manager import WebSocketManager
 from src.models import Chat, Message, ReadStatus, User
@@ -33,19 +40,23 @@ async def new_message_handler(
     cache_enabled: bool,
     **kwargs,
 ):
+    """
+    message is received as "new_message" type but broadcasted to all users
+    as "new" type
+    """
     message_schema = ReceiveMessageSchema(**incoming_message)
     chat_guid: str = str(message_schema.chat_guid)
 
+    notify_friend_about_new_chat: bool = False
+    # newly created chat
     if not chats or chat_guid not in chats:
         chat_id: int | None = await get_chat_id_by_guid(db_session, chat_guid=chat_guid)
         if chat_id:
-            chats = chats or dict()
+            # this action modifies chats variable in websocket view
             chats[chat_guid] = chat_id
             await socket_manager.add_user_to_chat(chat_guid, websocket)
-            if cache_enabled:
-                await clear_cache_for_get_messages(cache=cache, chat_guid=chat_guid)
-                await clear_cache_for_get_direct_chats(cache=cache, user=current_user)
-            # TODO: Clear cache for get users
+            # must notify friend that new chat has been created
+            notify_friend_about_new_chat = True
 
         else:
             await socket_manager.send_error("Chat has not been added", websocket)
@@ -68,8 +79,8 @@ async def new_message_handler(
         db_session.add(chat)
 
         await db_session.commit()
-        await db_session.refresh(message, attribute_names=["user", "chat"])
-        await db_session.refresh(chat, attribute_names=["users"])
+        await db_session.refresh(message, attribute_names=["user", "chat"])  # ?
+        await db_session.refresh(chat, attribute_names=["users"])  # ?
 
     except Exception as exc_info:
         await db_session.rollback()
@@ -79,7 +90,7 @@ async def new_message_handler(
     await mark_user_as_online(
         cache=cache, current_user=current_user, socket_manager=socket_manager, chat_guid=chat_guid
     )
-    # clear cache for all users (display last read message)
+    # clear cache for all users
     if cache_enabled:
         for user in chat.users:
             await clear_cache_for_get_direct_chats(cache=cache, user=user)
@@ -98,6 +109,10 @@ async def new_message_handler(
     outgoing_message: dict = send_message_schema.model_dump_json()
 
     await socket_manager.broadcast_to_chat(chat_guid, outgoing_message)
+
+    if notify_friend_about_new_chat:
+        logger.info("Notifying friend about newly created chat")
+        await send_new_chat_created_ws_message(socket_manager=socket_manager, current_user=current_user, chat=chat)
 
 
 @socket_manager.handler("message_read")
@@ -119,7 +134,6 @@ async def message_read_handler(
         await socket_manager.send_error(
             f"[read_status] Message with provided guid [{message_guid}] does not exist", websocket
         )
-
     chat_guid = str(message_read_schema.chat_guid)
     if chat_guid not in chats:
         await socket_manager.send_error(
@@ -157,6 +171,7 @@ async def user_typing_handler(
     incoming_message: dict,
     chats: dict,
     current_user: User,
+    cache: aioredis.Redis,
     **kwargs,
 ):
     # TODO: Rate limit
@@ -165,11 +180,43 @@ async def user_typing_handler(
 
     user_typing_schema = UserTypingSchema(**incoming_message)
     chat_guid: str = str(user_typing_schema.chat_guid)
-    outgoing_message: dict = user_typing_schema.model_dump_json()
-    if chats and chat_guid not in chats:
+    if chat_guid not in chats:
         await socket_manager.send_error(
             f"[user_typing] Chat with provided guid [{chat_guid}] does not exist", websocket
         )
         return
 
+    await mark_user_as_online(
+        cache=cache, current_user=current_user, socket_manager=socket_manager, chat_guid=chat_guid
+    )
+
+    outgoing_message: dict = user_typing_schema.model_dump_json()
     await socket_manager.broadcast_to_chat(chat_guid, outgoing_message)
+
+
+@socket_manager.handler("add_user_to_chat")
+async def add_user_to_chat_handler(
+    websocket: WebSocket,
+    incoming_message: dict,
+    chats: dict,
+    current_user: User,
+    cache: aioredis.Redis,
+    **kwargs,
+):
+    """
+    `add_user_to_chat` type is only received by non-initiator user active websockets
+    it subscribes the user to the newly created chat and marks non-initiator user
+    as active since he/she has an active websocket connection that received this message
+    """
+    add_user_to_chat_schema = AddUserToChatSchema(**incoming_message)
+
+    chat_guid = add_user_to_chat_schema.chat_guid
+    chat_id = add_user_to_chat_schema.chat_id
+
+    await socket_manager.add_user_to_chat(chat_guid=chat_guid, websocket=websocket)
+    # modify chats variable in websocket view
+    chats[chat_guid] = chat_id
+
+    await mark_user_as_online(
+        cache=cache, current_user=current_user, socket_manager=socket_manager, chat_guid=chat_guid
+    )

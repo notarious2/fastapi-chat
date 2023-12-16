@@ -11,7 +11,7 @@ class WebSocketManager:
         self.handlers: dict = {}
         self.chats: dict = {}  # stores user WebSocket connections by chat {"chat_guid": {ws1, ws2}, ...}
         self.pubsub_client = RedisPubSubManager()
-        self.chat_ids: dict = {}  # stores chat_guid: chat_id combination
+        self.user_guid_to_websocket: dict = {}  # stores user_guid: {ws1, ws2} combinations
 
     def handler(self, message_type):
         def decorator(func):
@@ -22,6 +22,9 @@ class WebSocketManager:
 
     async def connect_socket(self, websocket: WebSocket):
         await websocket.accept()
+
+    async def add_user_socket_connection(self, user_guid: str, websocket: WebSocket):
+        self.user_guid_to_websocket.setdefault(user_guid, set()).add(websocket)
 
     async def add_user_to_chat(self, chat_guid: str, websocket: WebSocket):
         if chat_guid in self.chats:
@@ -43,6 +46,10 @@ class WebSocketManager:
             del self.chats[chat_guid]
             print("Removing user from PubSub channel", chat_guid)
             await self.pubsub_client.unsubscribe(chat_guid)
+
+    async def remove_user_guid_to_websocket(self, user_guid: str, websocket: WebSocket):
+        if user_guid in self.user_guid_to_websocket:
+            self.user_guid_to_websocket.get(user_guid).remove(websocket)
 
     # https://github.com/redis/redis-py/issues/2523
     async def _pubsub_data_reader(self, pubsub_subscriber):
