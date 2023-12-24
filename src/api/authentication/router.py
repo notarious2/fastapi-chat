@@ -7,7 +7,15 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.authentication.services import authenticate_user, get_user_by_login_identifier
+from src.api.authentication.schemas import GoogleLoginSchema, UserLoginResponseSchema
+from src.api.authentication.services import (
+    authenticate_user,
+    create_user_from_google_credentials,
+    get_user_by_email,
+    get_user_by_login_identifier,
+    update_user_last_login,
+    verify_google_token,
+)
 from src.api.authentication.utils import create_access_token, create_refresh_token
 from src.config import settings
 from src.database import get_async_session
@@ -15,6 +23,37 @@ from src.dependencies import get_current_user
 from src.models import User
 
 auth_router = APIRouter(tags=["Authentication"])
+
+
+@auth_router.post("/google-login/")
+async def login_with_google(
+    response: Response, google_login_schema: GoogleLoginSchema, db_session: AsyncSession = Depends(get_async_session)
+):
+    google_access_token: str = google_login_schema.access_token
+    user_info: dict | None = await verify_google_token(google_access_token)
+
+    if not user_info:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not verify Google credentials")
+
+    email: str | None = user_info.get("email")
+    if not email:
+        HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email was not provided")
+
+    if not (user := await get_user_by_email(db_session, email=email)):
+        user: User = await create_user_from_google_credentials(db_session, **user_info)
+
+    access_token: str = create_access_token(email)
+    refresh_token: str = create_refresh_token(email)
+
+    # Send access and refresh tokens in HTTP only cookies
+    response.set_cookie(key="access_token", value=access_token, httponly=True, samesite="none", secure=True)
+    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="none", secure=True)
+
+    # update last login date
+    await update_user_last_login(db_session, user=user)
+
+    login_response = UserLoginResponseSchema.model_validate(user)
+    return login_response
 
 
 @auth_router.post(
@@ -42,13 +81,11 @@ async def login(
     response.set_cookie(key="access_token", value=access_token, httponly=True, samesite="none", secure=True)
     response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="none", secure=True)
 
-    return {
-        "user_guid": user.guid,
-        "email": user.email,
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "username": user.username,
-    }
+    # update last login date
+    await update_user_last_login(db_session, user=user)
+
+    login_response = UserLoginResponseSchema.model_validate(user)
+    return login_response
 
 
 @auth_router.post("/refresh/", summary="Create new access token for user")
