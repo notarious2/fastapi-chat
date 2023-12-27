@@ -35,7 +35,7 @@ class User(BaseModel):
     email: Mapped[str] = mapped_column(String(254), unique=True)
     last_login: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
-    user_image: Mapped[str] = mapped_column(String(128), nullable=True)
+    user_image: Mapped[str] = mapped_column(String(1000), nullable=True)
 
     chats: Mapped[List["Chat"]] = relationship(secondary=chat_participant, back_populates="users")
     messages: Mapped[List["Message"]] = relationship(back_populates="user")
