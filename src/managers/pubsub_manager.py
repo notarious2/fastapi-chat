@@ -2,7 +2,7 @@ from uuid import UUID
 
 import redis.asyncio as aioredis
 
-from src.config import settings
+from src.database import redis_pool
 
 
 class RedisPubSubManager:
@@ -10,10 +10,7 @@ class RedisPubSubManager:
         self.pubsub = None
 
     async def _get_redis_connection(self) -> aioredis.Redis:
-        pool = aioredis.ConnectionPool(
-            host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD, db=settings.REDIS_DB
-        )
-        return aioredis.Redis(connection_pool=pool)
+        return aioredis.Redis(connection_pool=redis_pool)
 
     async def connect(self):
         self.redis_connection = await self._get_redis_connection()

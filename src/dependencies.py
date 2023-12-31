@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.authentication.services import get_user_by_login_identifier
 from src.config import settings
-from src.database import get_async_session
+from src.database import get_async_session, redis_pool
 from src.models import User
 
 
@@ -58,10 +58,5 @@ async def get_cache_setting():
     return settings.REDIS_CACHE_ENABLED
 
 
-pool = aioredis.ConnectionPool(
-    host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD, db=settings.REDIS_DB
-)
-
-
 async def get_cache() -> aioredis.Redis:
-    return aioredis.Redis(connection_pool=pool)
+    return aioredis.Redis(connection_pool=redis_pool)

@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings
 class GlobalSettings(BaseSettings):
     ENVIRONMENT: str = "development"
     # app settings
-    ALLOWED_ORIGINS: str = "http://127.0.0.1:3000"
+    ALLOWED_ORIGINS: str = "http://127.0.0.1:3000,http://localhost:3000"
 
     DB_USER: str = "postgres"
     DB_PASSWORD: str = "postgres"
@@ -30,7 +30,7 @@ class GlobalSettings(BaseSettings):
     ADMIN_SECRET_KEY: str = "Hv9LGqARc473ceBUYDw1FR0QaXOA3Ky4"
 
     # redis for caching
-    REDIS_CACHE_ENABLED: bool = False
+    REDIS_CACHE_ENABLED: bool = True
     REDIS_HOST: str = "chat-redis"
     REDIS_PORT: str | int = 6379
     REDIS_PASSWORD: str | None = None

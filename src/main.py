@@ -14,7 +14,7 @@ from src.api.contact.router import contact_router
 from src.api.registration.router import account_router
 from src.api.websocket.router import websocket_router
 from src.config import settings
-from src.database import engine
+from src.database import engine, redis_pool
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="src/static"), name="static")
@@ -40,11 +40,6 @@ app.add_middleware(
 )
 
 add_pagination(app)
-
-
-redis_pool = aioredis.ConnectionPool(
-    host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD, db=settings.REDIS_DB
-)
 
 
 @app.on_event("startup")

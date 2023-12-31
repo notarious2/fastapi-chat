@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import AsyncGenerator
 
+import redis.asyncio as aioredis
 from sqlalchemy import Boolean, DateTime, MetaData, func
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
@@ -46,3 +47,12 @@ async_session_maker = sessionmaker(engine, class_=AsyncSession, expire_on_commit
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         yield session
+
+
+def create_redis_pool():
+    return aioredis.ConnectionPool(
+        host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD, db=settings.REDIS_DB
+    )
+
+
+redis_pool = create_redis_pool()
