@@ -42,3 +42,6 @@ postgres-bash:
 
 redis-cli:
 	docker exec -it chat-redis redis-cli
+
+show-envs:
+	docker exec chat-backend env
