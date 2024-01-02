@@ -1,10 +1,10 @@
 import enum
 import uuid
 from datetime import datetime
-from typing import List
+from typing import Any, List
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, String, Table
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import BaseModel, RemoveBaseFieldsMixin, metadata
@@ -36,6 +36,7 @@ class User(BaseModel):
     last_login: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
     user_image: Mapped[str] = mapped_column(String(1000), nullable=True)
+    settings: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default="{}")
 
     chats: Mapped[List["Chat"]] = relationship(secondary=chat_participant, back_populates="users")
     messages: Mapped[List["Message"]] = relationship(back_populates="user")

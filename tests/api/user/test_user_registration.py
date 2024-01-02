@@ -16,7 +16,8 @@ async def test_register_succeeds_given_valid_data(db_session: AsyncSession, asyn
         "first_name": "John",
         "last_name": "Doe",
     }
-    response = await async_client.post(url, json=payload)
+    response = await async_client.post(url, data=payload)
+
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == "User has been successfully created"
 
@@ -44,7 +45,7 @@ async def test_register_fails_given_invalid_email(async_client: AsyncClient):
         "last_name": "Doe",
     }
 
-    response = await async_client.post(url, json=payload)
+    response = await async_client.post(url, data=payload)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert "value is not a valid email address" in response.json()["detail"][0]["msg"]
@@ -60,7 +61,7 @@ async def test_register_fails_given_user_with_provided_email_already_exists(asyn
         "last_name": "Doe",
     }
 
-    response = await async_client.post(url, json=payload)
+    response = await async_client.post(url, data=payload)
 
     assert response.status_code == status.HTTP_409_CONFLICT
     assert response.json() == {"detail": "User with provided credentials already exists"}
@@ -78,7 +79,7 @@ async def test_register_fails_given_user_with_provided_username_already_exists(
         "last_name": "Doe",
     }
 
-    response = await async_client.post(url, json=payload)
+    response = await async_client.post(url, data=payload)
 
     assert response.status_code == status.HTTP_409_CONFLICT
     assert response.json() == {"detail": "User with provided credentials already exists"}

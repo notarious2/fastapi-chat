@@ -1,3 +1,5 @@
+from unittest import mock
+
 from fastapi import status
 from httpx import AsyncClient
 
@@ -5,13 +7,12 @@ from src.models import Chat
 
 
 async def test_get_user_chats_succeeds_given_chat_exists(authenticated_bob_client: AsyncClient, bob_emily_chat: Chat):
-    url = "/chats/direct/"
-
-    response = await authenticated_bob_client.get(url)
+    response = await authenticated_bob_client.get("/chats/direct/")
 
     assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {"chats": mock.ANY, "total_unread_messages_count": 0}
 
-    chats = response.json()
+    chats = response.json()["chats"]
     assert len(chats) == 1
     assert set(chats[0].keys()) == {
         "chat_guid",
@@ -27,13 +28,12 @@ async def test_get_user_chats_succeeds_given_chat_exists(authenticated_bob_clien
 async def test_get_user_chats_succeeds_given_user_has_multiple_chats(
     authenticated_bob_client: AsyncClient, bob_emily_chat: Chat, bob_doug_chat: Chat
 ):
-    url = "/chats/direct/"
-
-    response = await authenticated_bob_client.get(url)
+    response = await authenticated_bob_client.get("/chats/direct/")
 
     assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {"chats": mock.ANY, "total_unread_messages_count": 0}
 
-    chats = response.json()
+    chats = response.json()["chats"]
     assert len(chats) == 2
     for chat in chats:
         assert set(chat.keys()) == {

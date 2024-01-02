@@ -14,6 +14,7 @@ class UserLoginResponseSchema(BaseModel):
     first_name: str
     last_name: str
     user_image: str | None
+    settings: dict
 
     class Config:
         from_attributes = True

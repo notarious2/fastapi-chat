@@ -12,6 +12,7 @@ from src.api.authentication.router import auth_router
 from src.api.chat.router import chat_router
 from src.api.contact.router import contact_router
 from src.api.registration.router import account_router
+from src.api.settings.router import settings_router
 from src.api.websocket.router import websocket_router
 from src.config import settings
 from src.database import engine, redis_pool
@@ -26,6 +27,7 @@ app.include_router(account_router)
 app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(contact_router)
+app.include_router(settings_router)
 
 
 allowed_origins = settings.ALLOWED_ORIGINS.split(",")

@@ -45,7 +45,7 @@ async def test_get_messages_succeeds_given_existing_chat_with_messages_and_read_
     assert sum([message["is_read"] for message in messages]) == 15
 
 
-async def test_get_messages_succeeds_given_existing_chat_with_messages_and_size(
+async def test_get_messages_returns_all_messages_given_no_messages_are_read(
     authenticated_bob_client: AsyncClient, bob_emily_chat: Chat, bob_emily_chat_messages_history: list[Chat]
 ):
     url = f"/chat/{bob_emily_chat.guid}/messages/"
@@ -53,8 +53,8 @@ async def test_get_messages_succeeds_given_existing_chat_with_messages_and_size(
     response = await authenticated_bob_client.get(url, params={"size": 10})
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"messages": mock.ANY, "has_more_messages": True, "last_read_message": None}
-    assert len(response.json()["messages"]) == 10
+    assert response.json() == {"messages": mock.ANY, "has_more_messages": False, "last_read_message": None}
+    assert len(response.json()["messages"]) == 20
 
 
 async def test_get_messages_succeeds_given_existing_chat_without_messages(

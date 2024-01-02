@@ -19,6 +19,8 @@ async def test_user_login_succeeds_given_valid_credentials(async_client: AsyncCl
         "email": bob_user.email,
         "username": bob_user.username,
         "user_guid": str(bob_user.guid),
+        "user_image": None,
+        "settings": {},
     }
 
     assert response.cookies["access_token"] == mock.ANY
