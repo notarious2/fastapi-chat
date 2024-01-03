@@ -1,9 +1,12 @@
 import asyncio
 import json
+import logging
 
 from fastapi import WebSocket
 
 from src.managers.pubsub_manager import RedisPubSubManager
+
+logger = logging.getLogger(__name__)
 
 
 class WebSocketManager:
@@ -44,7 +47,7 @@ class WebSocketManager:
         self.chats[chat_guid].remove(websocket)
         if len(self.chats[chat_guid]) == 0:
             del self.chats[chat_guid]
-            print("Removing user from PubSub channel", chat_guid)
+            logger.info("Removing user from PubSub channel {chat_guid}")
             await self.pubsub_client.unsubscribe(chat_guid)
 
     async def remove_user_guid_to_websocket(self, user_guid: str, websocket: WebSocket):
@@ -64,7 +67,7 @@ class WebSocketManager:
                             data = message["data"].decode("utf-8")
                             await socket.send_text(data)
         except Exception as exc:
-            print("Exception Occurred", exc)
+            logger.exception(f"Exception occurred: {exc}")
 
     async def send_error(self, message: str, websocket: WebSocket):
         await websocket.send_json({"status": "error", "message": message})

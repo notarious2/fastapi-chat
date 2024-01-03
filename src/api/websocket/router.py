@@ -35,6 +35,7 @@ async def websocket_endpoint(
     cache_enabled: bool = Depends(get_cache_setting),
 ):
     await socket_manager.connect_socket(websocket=websocket)
+    logger.info("Websocket connection is established")
     ratelimit = WebSocketRateLimiter(times=50, seconds=10, callback=websocket_callback)
 
     # add user's socket connection {user_guid: {ws1, ws2}}
@@ -68,7 +69,7 @@ async def websocket_endpoint(
                 handler = socket_manager.handlers.get(message_type)
 
                 if not handler:
-                    logger.exception(f"No handler [{message_type}] exists")
+                    logger.error(f"No handler [{message_type}] exists")
                     await socket_manager.send_error(f"Type: {message_type} was not found", websocket)
                     continue
 
@@ -91,10 +92,11 @@ async def websocket_endpoint(
                 await socket_manager.send_error("Could not validate incoming message", websocket)
 
             except WebsocketTooManyRequests:
-                logger.info(f"User: {current_user} sent too many ws requests")
+                logger.exception(f"User: {current_user} sent too many ws requests")
                 await socket_manager.send_error("You have sent too many requests", websocket)
 
     except WebSocketDisconnect:
+        logging.info("Websocket is disconnected")
         # unsubscribe user websocket connection from all chats
         if chats:
             for chat_guid in chats:

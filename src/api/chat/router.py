@@ -92,7 +92,7 @@ async def get_user_messages_in_chat(
     if cache_enabled:
         # return cached chat messages if key exists
         if cached_chat_messages := await cache.get(cache_key):
-            logger.warning("Cache: Messages")
+            logger.info("Cache: Messages")
             return json.loads(cached_chat_messages)
 
     if current_user not in chat.users:
@@ -126,7 +126,7 @@ async def get_user_chats_view(
     # return cached direct chats if key exists
     cache_key = f"direct_chats_{current_user.guid}"
     if cached_direct_chats := await cache.get(cache_key):
-        logger.warning("Cache: Chats")
+        logger.info("Cache: Chats")
         return json.loads(cached_direct_chats)
 
     chats: list[Chat] = await get_user_direct_chats(db_session, current_user=current_user)

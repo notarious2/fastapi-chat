@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from typing import Annotated
 
@@ -21,6 +22,8 @@ from src.config import settings
 from src.database import get_async_session
 from src.dependencies import get_current_user
 from src.models import User
+
+logger = logging.getLogger(__name__)
 
 auth_router = APIRouter(tags=["Authentication"])
 
@@ -77,7 +80,9 @@ async def login(
     # create token based on login identifier instead of static username/email
     access_token: str = create_access_token(login_identifier)
     refresh_token: str = create_refresh_token(login_identifier)
-    print(access_token)
+
+    logger.debug(f"Access token: {access_token}")
+
     response.set_cookie(key="access_token", value=access_token, httponly=True, samesite="none", secure=True)
     response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="none", secure=True)
 

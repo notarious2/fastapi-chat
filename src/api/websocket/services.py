@@ -107,7 +107,6 @@ async def mark_last_read_message(
             )
             return
         else:
-            print("MY NEW LAST READ MESSAGE", last_read_message_id)
             read_status.last_read_message_id = last_read_message_id
 
     db_session.add(read_status)
@@ -197,7 +196,6 @@ async def send_new_chat_created_ws_message(socket_manager: WebSocketManager, cur
         await asyncio.gather(*[socket.send_json(jsonable_encoder(payload)) for socket in target_websockets])
         return
 
-    print("User has no active connections")
     logger.debug(
         "User has no active websocket connections", extra={"type": "new_chat_created", "friend_guid": friend_guid}
     )

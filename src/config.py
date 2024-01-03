@@ -1,3 +1,4 @@
+import logging
 import os
 
 import boto3
@@ -8,6 +9,9 @@ class GlobalSettings(BaseSettings):
     ENVIRONMENT: str = "development"
     # app settings
     ALLOWED_ORIGINS: str = "http://127.0.0.1:3000,http://localhost:3000"
+
+    # Logging
+    LOG_LEVEL: int = logging.DEBUG
 
     DB_USER: str = "postgres"
     DB_PASSWORD: str = "postgres"
@@ -62,6 +66,8 @@ class ProductionSettings(GlobalSettings):
     AWS_REGION_NAME: str
     AWS_IMAGES_BUCKET: str
 
+    LOG_LEVEL: int = logging.INFO
+
     @staticmethod
     def get_aws_client_for_image_upload():
         if all(
@@ -84,7 +90,7 @@ class ProductionSettings(GlobalSettings):
 
 
 def get_settings():
-    env = os.environ.get("ENVIRONMENT", "")
+    env = os.environ.get("ENVIRONMENT", "development")
     if env == "test":
         return TestSettings()
     elif env == "development":
@@ -96,3 +102,24 @@ def get_settings():
 
 
 settings = get_settings()
+
+
+LOGGING_CONFIG: dict = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
+    },
+    "handlers": {
+        "default": {
+            "level": settings.LOG_LEVEL,
+            "formatter": "standard",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",  # Default is stderr
+        },
+    },
+    "loggers": {
+        "": {"handlers": ["default"], "level": settings.LOG_LEVEL, "propagate": False},
+        "uvicorn": {"handlers": ["default"], "level": logging.ERROR, "propagate": False},
+    },
+}

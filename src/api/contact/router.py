@@ -29,7 +29,7 @@ async def get_contacts_view(
     if cache_enabled:
         # return cached users list if key exists
         if cached_all_users := await cache.get(cache_key):
-            logging.warning("Cache: Users")
+            logging.info("Cache: Users")
             return json.loads(cached_all_users)
 
     users: list[User] = await get_all_users(db_session, current_user=current_user)

@@ -86,4 +86,3 @@ async def verify_admin_user_by_token(
                 detail="Admin is not active",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        print("ADMIN", admin)
