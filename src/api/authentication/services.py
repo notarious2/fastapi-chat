@@ -6,7 +6,6 @@ from fastapi import status
 from httpx import AsyncClient, Response
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from src.models import User
 from src.utils import get_hashed_password, verify_password
@@ -17,7 +16,8 @@ async def authenticate_user(db_session: AsyncSession, login_identifier: str, pas
     # Introduce a small delay to mitigate user enumeration attacks
     await asyncio.sleep(0.1)
 
-    user = await get_user_by_login_identifier(db_session, login_identifier=login_identifier)
+    user: User | None = await get_user_by_login_identifier(db_session, login_identifier=login_identifier)
+
     if not user:
         return None
 
@@ -29,11 +29,7 @@ async def authenticate_user(db_session: AsyncSession, login_identifier: str, pas
 
 
 async def get_user_by_login_identifier(db_session: AsyncSession, *, login_identifier: str) -> User | None:
-    query = (
-        select(User)
-        .where(or_(User.email == login_identifier, User.username == login_identifier))
-        .options(selectinload(User.chats))
-    )
+    query = select(User).where(or_(User.email == login_identifier, User.username == login_identifier))
     result = await db_session.execute(query)
     user: User | None = result.scalar_one_or_none()
 

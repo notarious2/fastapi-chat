@@ -1,6 +1,7 @@
 import logging
 
 import redis.asyncio as aioredis
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -10,29 +11,40 @@ from sqladmin import Admin
 
 from src.admin.admin import admin_models
 from src.admin.authentication_backend import authentication_backend
-from src.api.authentication.router import auth_router
-from src.api.chat.router import chat_router
-from src.api.contact.router import contact_router
-from src.api.registration.router import account_router
-from src.api.settings.router import settings_router
-from src.api.websocket.router import websocket_router
+from src.api.routers import routers
 from src.config import LOGGING_CONFIG, settings
 from src.database import engine, redis_pool
 
-logging.config.dictConfig(LOGGING_CONFIG)
+# from sentry_sdk.integrations.asyncpg import AsyncPGIntegration
+
+if not settings.ENVIRONMENT == "test":
+    logging.config.dictConfig(LOGGING_CONFIG)
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        environment=settings.ENVIRONMENT,
+        # integrations=[
+        #     AsyncPGIntegration(),
+        # ],
+        enable_tracing=True,
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        traces_sample_rate=1.0,
+        # Set profiles_sample_rate to 1.0 to profile 100%
+        # of sampled transactions.
+        # We recommend adjusting this value in production.
+        profiles_sample_rate=1.0,
+    )
+
 logger = logging.getLogger(__name__)
+
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="src/static"), name="static")
 
 admin = Admin(app, engine, authentication_backend=authentication_backend)
 
-app.include_router(websocket_router)
-app.include_router(account_router)
-app.include_router(auth_router)
-app.include_router(chat_router)
-app.include_router(contact_router)
-app.include_router(settings_router)
+for router in routers:
+    app.include_router(router)
 
 
 allowed_origins = settings.ALLOWED_ORIGINS.split(",")

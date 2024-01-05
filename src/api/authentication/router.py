@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Annotated
 
 import jwt
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,9 +28,19 @@ logger = logging.getLogger(__name__)
 auth_router = APIRouter(tags=["Authentication"])
 
 
-@auth_router.post("/google-login/")
+@auth_router.post(
+    "/google-login/",
+    dependencies=[
+        Depends(RateLimiter(times=50, hours=24)),  # keep lower of result on top
+        Depends(RateLimiter(times=10, minutes=1)),
+    ],
+    summary="Login with Google oauth2",
+)
 async def login_with_google(
-    response: Response, google_login_schema: GoogleLoginSchema, db_session: AsyncSession = Depends(get_async_session)
+    response: Response,
+    google_login_schema: GoogleLoginSchema,
+    background_tasks: BackgroundTasks,
+    db_session: AsyncSession = Depends(get_async_session),
 ):
     google_access_token: str = google_login_schema.access_token
     user_info: dict | None = await verify_google_token(google_access_token)
@@ -45,6 +55,10 @@ async def login_with_google(
     if not (user := await get_user_by_email(db_session, email=email)):
         user: User = await create_user_from_google_credentials(db_session, **user_info)
 
+    else:
+        # update last login for existing user
+        background_tasks.add_task(update_user_last_login, db_session, user=user)
+
     access_token: str = create_access_token(email)
     refresh_token: str = create_refresh_token(email)
 
@@ -52,20 +66,21 @@ async def login_with_google(
     response.set_cookie(key="access_token", value=access_token, httponly=True, samesite="none", secure=True)
     response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="none", secure=True)
 
-    # update last login date
-    await update_user_last_login(db_session, user=user)
-
     login_response = UserLoginResponseSchema.model_validate(user)
     return login_response
 
 
 @auth_router.post(
     "/login/",
-    dependencies=[Depends(RateLimiter(times=10, minutes=1))],
+    dependencies=[
+        Depends(RateLimiter(times=50, hours=24)),  # keep lower of result on top
+        Depends(RateLimiter(times=10, minutes=1)),
+    ],
     summary="Create access and refresh tokens for a user",
 )
 async def login(
     response: Response,
+    background_tasks: BackgroundTasks,
     db_session: AsyncSession = Depends(get_async_session),
     form_data: OAuth2PasswordRequestForm = Depends(),
 ):
@@ -87,7 +102,7 @@ async def login(
     response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="none", secure=True)
 
     # update last login date
-    await update_user_last_login(db_session, user=user)
+    background_tasks.add_task(update_user_last_login, db_session, user=user)
 
     login_response = UserLoginResponseSchema.model_validate(user)
     return login_response

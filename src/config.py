@@ -2,16 +2,21 @@ import logging
 import os
 
 import boto3
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class GlobalSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
     ENVIRONMENT: str = "development"
     # app settings
     ALLOWED_ORIGINS: str = "http://127.0.0.1:3000,http://localhost:3000"
 
     # Logging
     LOG_LEVEL: int = logging.DEBUG
+
+    # Sentry
+    SENTRY_DSN: str
 
     DB_USER: str = "postgres"
     DB_PASSWORD: str = "postgres"

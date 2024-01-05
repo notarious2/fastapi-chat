@@ -15,7 +15,7 @@ class MessageAdmin(ModelView, model=Message):
 
 class UserAdmin(ModelView, model=User):
     icon = "fa-solid fa-user"
-    column_list = [User.id, User.username, User.guid, User.is_deleted, User.created_at]
+    column_list = [User.id, User.email, User.username, User.guid, User.is_deleted, User.created_at]
 
 
 class ReadStatusAdmin(ModelView, model=ReadStatus):
