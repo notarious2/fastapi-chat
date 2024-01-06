@@ -7,18 +7,18 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi_limiter.depends import WebSocketRateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.websocket.exceptions import WebsocketTooManyRequests
-from src.api.websocket.handlers import socket_manager
-from src.api.websocket.rate_limiter import websocket_callback
-from src.api.websocket.services import (
+from src.database import get_async_session
+from src.dependencies import get_cache, get_cache_setting, get_current_user
+from src.models import User
+from src.websocket.exceptions import WebsocketTooManyRequests
+from src.websocket.handlers import socket_manager
+from src.websocket.rate_limiter import websocket_callback
+from src.websocket.services import (
     check_user_statuses,
     get_user_active_direct_chats,
     mark_user_as_offline,
     mark_user_as_online,
 )
-from src.database import get_async_session
-from src.dependencies import get_cache, get_cache_setting, get_current_user
-from src.models import User
 
 logger = logging.getLogger(__name__)
 

@@ -8,7 +8,7 @@ from starlette.responses import RedirectResponse
 
 from src.admin.models import AdminUser
 from src.admin.services import authenticate_admin_user, verify_admin_user_by_token
-from src.api.authentication.utils import create_access_token
+from src.authentication.utils import create_access_token
 from src.config import settings
 from src.database import async_session_maker
 

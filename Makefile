@@ -22,6 +22,9 @@ down:
 test:
 	docker exec -it chat-backend python -m pytest -svv $(target)
 
+test-integration:
+	docker exec -it chat-backend python -m pytest -m "integration" -svv
+
 revision:
 	docker exec -it chat-backend alembic revision --autogenerate -m "${m}"
 

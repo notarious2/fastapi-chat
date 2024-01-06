@@ -16,7 +16,7 @@ class GlobalSettings(BaseSettings):
     LOG_LEVEL: int = logging.DEBUG
 
     # Sentry
-    SENTRY_DSN: str
+    SENTRY_DSN: str = ""
 
     DB_USER: str = "postgres"
     DB_PASSWORD: str = "postgres"

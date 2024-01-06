@@ -2,11 +2,11 @@ import redis.asyncio as aioredis
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.registration.schemas import UserRegisterSchema
-from src.api.registration.services import ImageSaver, create_user, get_user_by_email_or_username
 from src.database import get_async_session
 from src.dependencies import get_cache
 from src.models import User
+from src.registration.schemas import UserRegisterSchema
+from src.registration.services import ImageSaver, create_user, get_user_by_email_or_username
 from src.utils import clear_cache_for_all_users
 
 account_router = APIRouter(tags=["Account Management"])

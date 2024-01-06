@@ -8,8 +8,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.authentication.schemas import GoogleLoginSchema, UserLoginResponseSchema
-from src.api.authentication.services import (
+from src.authentication.schemas import GoogleLoginSchema, UserLoginResponseSchema
+from src.authentication.services import (
     authenticate_user,
     create_user_from_google_credentials,
     get_user_by_email,
@@ -17,7 +17,7 @@ from src.api.authentication.services import (
     update_user_last_login,
     verify_google_token,
 )
-from src.api.authentication.utils import create_access_token, create_refresh_token
+from src.authentication.utils import create_access_token, create_refresh_token
 from src.config import settings
 from src.database import get_async_session
 from src.dependencies import get_current_user

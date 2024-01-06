@@ -7,7 +7,7 @@ import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.chat.schemas import (
+from src.chat.schemas import (
     CreateDirectChatSchema,
     DisplayDirectChatSchema,
     GetDirectChatSchema,
@@ -15,7 +15,7 @@ from src.api.chat.schemas import (
     GetMessagesSchema,
     GetOldMessagesSchema,
 )
-from src.api.chat.services import (
+from src.chat.services import (
     add_new_messages_stats_to_direct_chat,
     create_direct_chat,
     direct_chat_exists,

@@ -10,10 +10,10 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.api.websocket.schemas import NewChatCreated
 from src.config import settings
 from src.managers.websocket_manager import WebSocketManager
 from src.models import Chat, ChatType, Message, ReadStatus, User
+from src.websocket.schemas import NewChatCreated
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ async def mark_user_as_online(
     cache: aioredis.Redis, current_user: User, socket_manager: WebSocketManager = None, chat_guid: str = None
 ):
     # set new redis key
-    await cache.set(f"user:{current_user.id}:status", "online", ex=60)  # 2 hours
+    await cache.set(f"user:{current_user.id}:status", "online", ex=60)  # 1 hours
     if socket_manager and chat_guid:
         await socket_manager.broadcast_to_chat(
             chat_guid,
