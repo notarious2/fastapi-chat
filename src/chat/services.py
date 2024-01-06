@@ -5,24 +5,30 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.api.chat.schemas import GetDirectChatSchema, GetMessageSchema
+from src.chat.schemas import GetDirectChatSchema, GetMessageSchema
 from src.models import Chat, ChatType, Message, ReadStatus, User
 
 
 async def create_direct_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat:
-    # TODO: Make it an atomic transaction
-    chat = Chat(chat_type=ChatType.DIRECT)
-    chat.users.append(initiator_user)
-    chat.users.append(recipient_user)
-    db_session.add(chat)
-    await db_session.flush()
-    # make empty read statuses for both users last_read_message_id = 0
-    initiator_read_status = ReadStatus(chat_id=chat.id, user_id=initiator_user.id, last_read_message_id=0)
-    recipient_read_status = ReadStatus(chat_id=chat.id, user_id=recipient_user.id, last_read_message_id=0)
-    db_session.add_all([initiator_read_status, recipient_read_status])
-    await db_session.commit()
+    try:
+        chat = Chat(chat_type=ChatType.DIRECT)
+        chat.users.append(initiator_user)
+        chat.users.append(recipient_user)
+        db_session.add(chat)
+        await db_session.flush()
 
-    return chat
+        # make empty read statuses for both users last_read_message_id = 0
+        initiator_read_status = ReadStatus(chat_id=chat.id, user_id=initiator_user.id, last_read_message_id=0)
+        recipient_read_status = ReadStatus(chat_id=chat.id, user_id=recipient_user.id, last_read_message_id=0)
+        db_session.add_all([initiator_read_status, recipient_read_status])
+        await db_session.commit()
+
+    except Exception as exc_info:
+        await db_session.rollback()
+        raise exc_info
+
+    else:
+        return chat
 
 
 async def get_direct_chat_by_users(

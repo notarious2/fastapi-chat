@@ -1,7 +1,7 @@
 from sqlalchemy import and_, not_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.contact.schemas import GetUserSchema
+from src.contact.schemas import GetUserSchema
 from src.models import User
 
 

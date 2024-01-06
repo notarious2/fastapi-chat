@@ -5,7 +5,7 @@ import redis.asyncio as aioredis
 from fastapi import Cookie, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.authentication.services import get_user_by_login_identifier
+from src.authentication.services import get_user_by_login_identifier
 from src.config import settings
 from src.database import get_async_session, redis_pool
 from src.models import User

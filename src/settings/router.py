@@ -4,11 +4,11 @@ from fastapi import APIRouter, Depends
 from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.settings.schemas import UserThemeSchema
-from src.api.settings.services import set_user_theme
 from src.database import get_async_session
 from src.dependencies import get_current_user
 from src.models import User
+from src.settings.schemas import UserThemeSchema
+from src.settings.services import set_user_theme
 
 settings_router = APIRouter(tags=["Settings Management"])
 

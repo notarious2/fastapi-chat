@@ -11,9 +11,9 @@ from sqladmin import Admin
 
 from src.admin.admin import admin_models
 from src.admin.authentication_backend import authentication_backend
-from src.api.routers import routers
 from src.config import LOGGING_CONFIG, settings
 from src.database import engine, redis_pool
+from src.routers import routers
 
 # from sentry_sdk.integrations.asyncpg import AsyncPGIntegration
 

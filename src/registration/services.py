@@ -8,9 +8,9 @@ from PIL import Image
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.registration.schemas import UserRegisterSchema
 from src.config import settings
 from src.models import User
+from src.registration.schemas import UserRegisterSchema
 from src.utils import get_hashed_password
 
 logger = logging.getLogger(__name__)

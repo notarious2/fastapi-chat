@@ -5,9 +5,9 @@ import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.contact.schemas import GetUsersResponseSchema
-from src.api.contact.services import get_all_users
 from src.config import settings
+from src.contact.schemas import GetUsersResponseSchema
+from src.contact.services import get_all_users
 from src.database import get_async_session
 from src.dependencies import get_cache, get_cache_setting, get_current_user
 from src.models import User

@@ -5,23 +5,23 @@ import redis.asyncio as aioredis
 from fastapi import WebSocket
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.websocket.schemas import (
+from src.managers.websocket_manager import WebSocketManager
+from src.models import Chat, Message, ReadStatus, User
+from src.utils import clear_cache_for_get_direct_chats, clear_cache_for_get_messages
+from src.websocket.schemas import (
     AddUserToChatSchema,
     MessageReadSchema,
     ReceiveMessageSchema,
     SendMessageSchema,
     UserTypingSchema,
 )
-from src.api.websocket.services import (
+from src.websocket.services import (
     get_chat_id_by_guid,
     get_message_by_guid,
     mark_last_read_message,
     mark_user_as_online,
     send_new_chat_created_ws_message,
 )
-from src.managers.websocket_manager import WebSocketManager
-from src.models import Chat, Message, ReadStatus, User
-from src.utils import clear_cache_for_get_direct_chats, clear_cache_for_get_messages
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +176,6 @@ async def user_typing_handler(
 ):
     # TODO: Rate limit
     # TODO: Validate chat_guid and user_guid
-    # TODO: mark user that is typing as online
 
     user_typing_schema = UserTypingSchema(**incoming_message)
     chat_guid: str = str(user_typing_schema.chat_guid)

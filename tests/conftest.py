@@ -10,7 +10,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from src.api.authentication.utils import create_access_token
+from src.authentication.utils import create_access_token
 from src.config import settings
 from src.database import get_async_session, metadata
 from src.main import app

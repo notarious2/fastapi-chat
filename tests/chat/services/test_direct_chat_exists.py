@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.chat.services import direct_chat_exists
+from src.chat.services import direct_chat_exists
 from src.models import Chat, User
 
 
@@ -11,9 +11,7 @@ async def test_direct_chat_exists_returns_true_given_chat_exists(
     bob_user: User,
     emily_user: User,
 ):
-    chat_exists = await direct_chat_exists(db_session, current_user=bob_user, recipient_user=emily_user)
-
-    assert chat_exists is True
+    assert await direct_chat_exists(db_session, current_user=bob_user, recipient_user=emily_user)
 
 
 async def test_direct_chat_exists_returns_false_given_chat_does_not_exist(
@@ -22,6 +20,4 @@ async def test_direct_chat_exists_returns_false_given_chat_does_not_exist(
     bob_user: User,
     emily_user: User,
 ):
-    chat_exists = await direct_chat_exists(db_session, current_user=bob_user, recipient_user=emily_user)
-
-    assert chat_exists is False
+    assert not await direct_chat_exists(db_session, current_user=bob_user, recipient_user=emily_user)
