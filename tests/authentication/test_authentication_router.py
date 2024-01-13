@@ -27,6 +27,48 @@ async def test_user_login_succeeds_given_valid_credentials(async_client: AsyncCl
     assert response.cookies["refresh_token"] == mock.ANY
 
 
+async def test_user_login_succeeds_given_capitalized_username(async_client: AsyncClient, bob_user: User):
+    url = "/login/"
+    payload = {"username": bob_user.username.capitalize(), "password": "password"}
+
+    response = await async_client.post(url, data=payload)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "first_name": bob_user.first_name,
+        "last_name": bob_user.last_name,
+        "email": bob_user.email,
+        "username": bob_user.username,
+        "user_guid": str(bob_user.guid),
+        "user_image": None,
+        "settings": {},
+    }
+
+    assert response.cookies["access_token"] == mock.ANY
+    assert response.cookies["refresh_token"] == mock.ANY
+
+
+async def test_user_login_succeeds_given_capitalized_email(async_client: AsyncClient, bob_user: User):
+    url = "/login/"
+    payload = {"username": bob_user.email.capitalize(), "password": "password"}
+
+    response = await async_client.post(url, data=payload)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "first_name": bob_user.first_name,
+        "last_name": bob_user.last_name,
+        "email": bob_user.email,
+        "username": bob_user.username,
+        "user_guid": str(bob_user.guid),
+        "user_image": None,
+        "settings": {},
+    }
+
+    assert response.cookies["access_token"] == mock.ANY
+    assert response.cookies["refresh_token"] == mock.ANY
+
+
 async def test_user_login_fails_given_invalid_username(async_client: AsyncClient):
     url = "/login/"
     payload = {"username": "some username", "password": "password"}

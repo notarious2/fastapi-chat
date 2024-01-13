@@ -66,7 +66,7 @@ async def create_user_from_google_credentials(db_session: AsyncSession, **kwargs
 
 # https://stackoverflow.com/questions/16501895/how-do-i-get-user-profile-using-google-access-token
 # Verify the auth token received by client after google signin
-async def verify_google_token(google_access_token: str) -> dict | None:
+async def verify_google_token(google_access_token: str) -> dict[str, str] | None:
     google_url = f"https://www.googleapis.com/oauth2/v3/userinfo?access_token={google_access_token}"
 
     async with AsyncClient() as client:

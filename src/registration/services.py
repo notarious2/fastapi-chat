@@ -29,8 +29,8 @@ async def get_user_by_email_or_username(db_session: AsyncSession, *, email: str,
 async def create_user(db_session: AsyncSession, *, user_schema: UserRegisterSchema) -> User:
     hashed_password = get_hashed_password(user_schema.password)
     new_user = User(
-        username=user_schema.username,
-        email=user_schema.email,
+        username=user_schema.username.lower(),
+        email=user_schema.email.lower(),
         first_name=user_schema.first_name,
         last_name=user_schema.last_name,
         password=hashed_password,

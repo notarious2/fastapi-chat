@@ -43,12 +43,13 @@ async def login_with_google(
     db_session: AsyncSession = Depends(get_async_session),
 ):
     google_access_token: str = google_login_schema.access_token
-    user_info: dict | None = await verify_google_token(google_access_token)
+    user_info: dict[str, str] | None = await verify_google_token(google_access_token)
 
     if not user_info:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not verify Google credentials")
 
-    email: str | None = user_info.get("email")
+    # email field is case insensitive, db holds only lower case representation
+    email: str = user_info.get("email", "").lower()
     if not email:
         HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email was not provided")
 
@@ -84,7 +85,7 @@ async def login(
     db_session: AsyncSession = Depends(get_async_session),
     form_data: OAuth2PasswordRequestForm = Depends(),
 ):
-    login_identifier, password = form_data.username, form_data.password
+    login_identifier, password = form_data.username.lower(), form_data.password
     user: User | None = await authenticate_user(
         db_session=db_session, login_identifier=login_identifier, password=password
     )

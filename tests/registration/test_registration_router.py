@@ -10,8 +10,8 @@ from src.utils import verify_password
 async def test_register_succeeds_given_valid_data(db_session: AsyncSession, async_client: AsyncClient):
     url = "/register/"
     payload = {
-        "email": "example@gmail.com",
-        "username": "bob_username",
+        "email": "ExamPle@gmail.com",
+        "username": "bOb_userName",
         "password": "test_password",
         "first_name": "John",
         "last_name": "Doe",
