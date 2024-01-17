@@ -61,14 +61,23 @@ class Chat(BaseModel):
         return f"{self.chat_type.value.title()} {self.guid}"
 
 
+class MessageType(enum.Enum):
+    TEXT = "text"
+    FILE = "file"
+
+
 class Message(BaseModel):
     __tablename__ = "message"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     guid: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), default=uuid.uuid4)
+    message_type: Mapped[str] = mapped_column(Enum(MessageType, inherit_schema=True), default=MessageType.TEXT)
     content: Mapped[str] = mapped_column(String(5000))
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     chat_id: Mapped[int] = mapped_column(ForeignKey("chat.id"))
+
+    file_name: Mapped[str] = mapped_column(String(50), nullable=True)
+    file_path: Mapped[str] = mapped_column(String(1000), nullable=True)
 
     chat: Mapped["Chat"] = relationship(back_populates="messages")
     user: Mapped["User"] = relationship(back_populates="messages")
