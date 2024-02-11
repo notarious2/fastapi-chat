@@ -1,8 +1,10 @@
+import asyncio
 import logging
 from datetime import datetime
 
 import redis.asyncio as aioredis
 from fastapi import WebSocket
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.managers.websocket_manager import WebSocketManager
@@ -11,6 +13,7 @@ from src.utils import clear_cache_for_get_direct_chats, clear_cache_for_get_mess
 from src.websocket.schemas import (
     AddUserToChatSchema,
     MessageReadSchema,
+    NotifyChatRemovedSchema,
     ReceiveMessageSchema,
     SendMessageSchema,
     UserTypingSchema,
@@ -219,3 +222,48 @@ async def add_user_to_chat_handler(
     await mark_user_as_online(
         cache=cache, current_user=current_user, socket_manager=socket_manager, chat_guid=chat_guid
     )
+
+
+@socket_manager.handler("chat_deleted")
+async def chat_deleted_handler(
+    websocket: WebSocket,
+    incoming_message: dict,
+    chats: dict,
+    current_user: User,
+    **kwargs,
+):
+    """
+    `chat_deleted` - sends ws notification to all active websocket connections to display
+    a message that the chat has been deleted/actual deletion happens via HTTP request
+    """
+
+    notify_chat_removed_schema = NotifyChatRemovedSchema(**incoming_message)
+    chat_guid = notify_chat_removed_schema.chat_guid
+    if chat_guid not in chats:
+        await socket_manager.send_error(
+            f"[chat_deleted] Chat with provided guid [{chat_guid}] does not exist", websocket
+        )
+        return
+
+    # get all websocket connections that belong to this chat (except for ws that sent this messsage)
+    # and send notification that chat has been removed
+
+    target_websockets: set[WebSocket] = socket_manager.chats.get(chat_guid)
+
+    outgoing_message = {
+        "type": "chat_deleted",
+        "user_guid": str(current_user.guid),
+        "user_name": current_user.first_name,
+        "chat_guid": chat_guid,
+    }
+
+    if target_websockets:
+        # Send the notification message to the target user concurrently
+        # used to notify frontend
+        await asyncio.gather(
+            *[
+                socket.send_json(jsonable_encoder(outgoing_message))
+                for socket in target_websockets
+                if socket != websocket
+            ]
+        )

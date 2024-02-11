@@ -161,7 +161,7 @@ async def send_new_chat_created_ws_message(socket_manager: WebSocketManager, cur
     This allows to update chats while user is still connected without refreshing the page
     via get_chats view
     """
-    # current is becomes a friend for user that receives this message
+    # current user becomes a friend for a user that receives this message
     friend: dict = {
         "guid": current_user.guid,
         "first_name": current_user.first_name,

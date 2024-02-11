@@ -47,3 +47,8 @@ class NewChatCreated(BaseModel):
 class AddUserToChatSchema(BaseModel):
     chat_guid: str  # used for websocket communication
     chat_id: int
+
+
+class NotifyChatRemovedSchema(BaseModel):
+    type: str = "chat_deleted"
+    chat_guid: str

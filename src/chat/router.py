@@ -165,7 +165,8 @@ async def delete_direct_chat_view(
     await db_session.commit()
 
     if cache_enabled:
-        await clear_cache_for_get_direct_chats(cache=cache, user=current_user)
+        for user in chat.users:
+            await clear_cache_for_get_direct_chats(cache=cache, user=user)
 
 
 @chat_router.get(
