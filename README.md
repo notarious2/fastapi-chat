@@ -24,3 +24,4 @@ Live Demo: https://www.ponderpal.chat
 - Google Oauth2 authentication:
   - Frontend retrieves access token
   - Backend verifies and gets user data
+- Modern Admin panel with `sqladmin`
