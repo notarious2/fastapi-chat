@@ -24,4 +24,7 @@ Live Demo: https://www.ponderpal.chat
 - Google Oauth2 authentication:
   - Frontend retrieves access token
   - Backend verifies and gets user data
+- Store files in AWS S3 bucket in production and StaticFiles in local development
 - Modern Admin panel with `sqladmin`
+  
+<img width="864" alt="Screenshot 2024-02-18 at 18 37 11" src="https://github.com/notarious2/fastapi-chat/assets/104051317/27df9a18-5131-4e39-a80e-103f8b9ba5e8">
