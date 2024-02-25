@@ -58,7 +58,6 @@ class GetDirectChatSchema(BaseModel):
     created_at: datetime
     updated_at: datetime
     users: list[UserSchema]
-    has_new_messages: bool
     new_messages_count: int
 
     class Config:

@@ -1,12 +1,15 @@
+import logging
 from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import aliased, selectinload
 
 from src.chat.schemas import GetDirectChatSchema, GetMessageSchema
 from src.models import Chat, ChatType, Message, ReadStatus, User
+
+logger = logging.getLogger(__name__)
 
 
 async def create_direct_chat(db_session: AsyncSession, *, initiator_user: User, recipient_user: User) -> Chat:
@@ -66,6 +69,57 @@ async def get_user_by_guid(db_session: AsyncSession, *, user_guid: UUID) -> User
     return user
 
 
+async def get_new_messages_per_chat(
+    db_session: AsyncSession, chats: list[Chat], current_user: User
+) -> list[GetDirectChatSchema]:
+    """
+    New message are those messages that:
+    - don't belong to current user
+    - are not yet read by current user
+
+    """
+    # Create a dictionary with default values of 0
+    new_messages_count_per_chat = {chat.id: 0 for chat in chats}
+
+    # Create an alias for the ReadStatus table
+    read_status_alias = aliased(ReadStatus)
+
+    query = (
+        select(Message.chat_id, func.count().label("message_count"))
+        .join(
+            read_status_alias,
+            and_(read_status_alias.user_id == current_user.id, read_status_alias.chat_id == Message.chat_id),
+        )
+        .where(
+            and_(
+                Message.user_id != current_user.id,
+                Message.id > func.coalesce(read_status_alias.last_read_message_id, 0),
+                Message.is_deleted.is_(False),
+                Message.chat_id.in_(new_messages_count_per_chat),
+            )
+        )
+        .group_by(Message.chat_id)
+    )
+
+    result = await db_session.execute(query)
+    new_messages_count = result.fetchall()
+
+    for messages_count in new_messages_count:
+        new_messages_count_per_chat[messages_count[0]] = messages_count[1]
+
+    return [
+        GetDirectChatSchema(
+            chat_guid=chat.guid,
+            chat_type=chat.chat_type,
+            created_at=chat.created_at,
+            updated_at=chat.updated_at,
+            users=chat.users,
+            new_messages_count=new_messages_count_per_chat[chat.id],
+        )
+        for chat in chats
+    ]
+
+
 async def get_user_direct_chats(db_session: AsyncSession, *, current_user: User) -> list[Chat]:
     query = (
         select(Chat)
@@ -76,7 +130,7 @@ async def get_user_direct_chats(db_session: AsyncSession, *, current_user: User)
                 Chat.chat_type == ChatType.DIRECT,
             )
         )
-        .options(selectinload(Chat.users), selectinload(Chat.read_statuses))
+        .options(selectinload(Chat.users))
     ).order_by(Chat.updated_at.desc())
     result = await db_session.execute(query)
 

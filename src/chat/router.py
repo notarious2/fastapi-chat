@@ -16,12 +16,12 @@ from src.chat.schemas import (
     GetOldMessagesSchema,
 )
 from src.chat.services import (
-    add_new_messages_stats_to_direct_chat,
     create_direct_chat,
     direct_chat_exists,
     get_active_message_by_guid_and_chat,
     get_chat_by_guid,
     get_chat_messages,
+    get_new_messages_per_chat,
     get_older_chat_messages,
     get_unread_messages_count,
     get_user_by_guid,
@@ -131,15 +131,16 @@ async def get_user_chats_view(
 
     chats: list[Chat] = await get_user_direct_chats(db_session, current_user=current_user)
 
-    # Store response in the cache with a TTL
-    direct_chats: list[GetDirectChatSchema] = [
-        await add_new_messages_stats_to_direct_chat(db_session, current_user=current_user, chat=chat) for chat in chats
-    ]
+    chats_with_new_messages_count: list[GetDirectChatSchema] = await get_new_messages_per_chat(
+        db_session, chats, current_user
+    )
 
     # calculate total unread messages count for all user's chats
-    total_unread_messages_count = sum(direct_chat.new_messages_count for direct_chat in direct_chats)
+    total_unread_messages_count = sum(direct_chat.new_messages_count for direct_chat in chats_with_new_messages_count)
 
-    response = GetDirectChatsSchema(chats=direct_chats, total_unread_messages_count=total_unread_messages_count)
+    response = GetDirectChatsSchema(
+        chats=chats_with_new_messages_count, total_unread_messages_count=total_unread_messages_count
+    )
 
     if cache_enabled:
         # Store response in the cache with a TTL
