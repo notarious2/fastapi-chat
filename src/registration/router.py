@@ -18,10 +18,10 @@ account_router = APIRouter(tags=["Account Management"])
 
 @account_router.post("/register/", summary="Register user")
 async def register_user(
-    user_schema: UserRegisterSchema,
     background_tasks: BackgroundTasks,
     db_session: AsyncSession = Depends(get_async_session),
     cache: aioredis.Redis = Depends(get_cache),
+    user_schema: UserRegisterSchema = Depends(UserRegisterSchema),
 ):
     # check if user with username or email already exists
     if await get_user_by_email_or_username(db_session, email=user_schema.email, username=user_schema.username):
