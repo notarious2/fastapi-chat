@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Any, List
 
-from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, String, Table
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Index, String, Table
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -35,8 +35,9 @@ class User(BaseModel):
     email: Mapped[str] = mapped_column(String(254), unique=True)
     last_login: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
-    user_image: Mapped[str] = mapped_column(String(1000), nullable=True)
+    user_image: Mapped[str] = mapped_column(String(1048), nullable=True)
     settings: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default="{}")
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)  # redefine is_deleted column for index
 
     chats: Mapped[List["Chat"]] = relationship(secondary=chat_participant, back_populates="users")
     messages: Mapped[List["Message"]] = relationship(back_populates="user")
@@ -44,6 +45,19 @@ class User(BaseModel):
 
     def __str__(self):
         return f"{self.username}"
+
+    # Indexes
+
+    __table_args__ = (
+        Index("idx_user_on_email_username", "email", "username", postgresql_concurrently=True),
+        Index(
+            "idx_user_partial_on_email_not_deleted",
+            "email",
+            "is_deleted",
+            postgresql_concurrently=True,
+            postgresql_where=(is_deleted.is_(False)),
+        ),
+    )
 
 
 class Chat(BaseModel):
@@ -59,6 +73,11 @@ class Chat(BaseModel):
 
     def __str__(self):
         return f"{self.chat_type.value.title()} {self.guid}"
+
+    __table_args__ = (
+        Index("idx_chat_on_is_deleted_chat_type", "is_deleted", "chat_type", postgresql_concurrently=True),
+        Index("idx_chat_on_guid", "guid", postgresql_concurrently=True),
+    )
 
 
 class MessageType(enum.Enum):
@@ -85,6 +104,12 @@ class Message(BaseModel):
     def __str__(self):
         return f"{self.content}"
 
+    __table_args__ = (
+        Index("idx_message_on_chat_id", "chat_id", postgresql_concurrently=True),
+        Index("idx_message_on_user_id", "user_id", postgresql_concurrently=True),
+        Index("idx_message_on_user_id_chat_id", "chat_id", "user_id", postgresql_concurrently=True),
+    )
+
 
 class ReadStatus(RemoveBaseFieldsMixin, BaseModel):
     __tablename__ = "read_status"
@@ -100,3 +125,8 @@ class ReadStatus(RemoveBaseFieldsMixin, BaseModel):
 
     def __str__(self):
         return f"User: {self.user_id}, Message: {self.last_read_message_id}"
+
+    __table_args__ = (
+        Index("idx_read_status_on_chat_id", "chat_id", postgresql_concurrently=True),
+        Index("idx_read_status_on_user_id", "user_id", postgresql_concurrently=True),
+    )
