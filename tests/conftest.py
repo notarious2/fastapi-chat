@@ -36,7 +36,7 @@ async def override_get_async_session() -> AsyncGenerator[AsyncSession, None]:
 app.dependency_overrides[get_async_session] = override_get_async_session
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 async def db_session():
     async with autocommit_engine.begin() as conn:
         await conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {settings.DB_SCHEMA}"))
@@ -60,7 +60,7 @@ async def clear_tables(db_session: AsyncSession):
 client = TestClient(app)
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def event_loop(request):
     """Create an instance of the default event loop for each test case."""
     loop = asyncio.get_event_loop_policy().new_event_loop()
@@ -199,12 +199,16 @@ async def bob_emily_chat_messages_history(
 
 @pytest.fixture
 async def bob_read_status(
-    db_session: AsyncSession, bob_user: User, bob_emily_chat_messages_history: list[Message]
+    db_session: AsyncSession,
+    bob_user: User,
+    bob_emily_chat_messages_history: list[Message],
 ) -> ReadStatus:
     # bob read 10 messages
     last_read_message = bob_emily_chat_messages_history[9]
     read_status = ReadStatus(
-        user_id=bob_user.id, chat_id=last_read_message.chat.id, last_read_message_id=last_read_message.id
+        user_id=bob_user.id,
+        chat_id=last_read_message.chat.id,
+        last_read_message_id=last_read_message.id,
     )
     db_session.add(read_status)
     await db_session.commit()
@@ -214,12 +218,16 @@ async def bob_read_status(
 
 @pytest.fixture
 async def emily_read_status(
-    db_session: AsyncSession, emily_user: User, bob_emily_chat_messages_history: list[Message]
+    db_session: AsyncSession,
+    emily_user: User,
+    bob_emily_chat_messages_history: list[Message],
 ) -> ReadStatus:
     # emily read 15 messages
     last_read_message = bob_emily_chat_messages_history[14]
     read_status = ReadStatus(
-        user_id=emily_user.id, chat_id=last_read_message.chat.id, last_read_message_id=last_read_message.id
+        user_id=emily_user.id,
+        chat_id=last_read_message.chat.id,
+        last_read_message_id=last_read_message.id,
     )
     db_session.add(read_status)
     await db_session.commit()

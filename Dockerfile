@@ -21,7 +21,7 @@ WORKDIR /opt/chat
 
 COPY poetry.lock pyproject.toml ./
 RUN pip install "poetry==$POETRY_VERSION"
-RUN poetry export --with dev --output requirements.txt
+RUN poetry export --with test,lint --output requirements.txt
 RUN pip install --no-deps -r requirements.txt
 
 COPY . .

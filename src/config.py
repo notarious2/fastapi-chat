@@ -1,5 +1,6 @@
 import logging
 import os
+from random import randint
 
 import boto3
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -58,7 +59,7 @@ class GlobalSettings(BaseSettings):
 
 
 class TestSettings(GlobalSettings):
-    DB_SCHEMA: str = "test"
+    DB_SCHEMA: str = f"test_{randint(1, 100)}"
 
 
 class DevelopmentSettings(GlobalSettings):
@@ -125,6 +126,10 @@ LOGGING_CONFIG: dict = {
     },
     "loggers": {
         "": {"handlers": ["default"], "level": settings.LOG_LEVEL, "propagate": False},
-        "uvicorn": {"handlers": ["default"], "level": logging.ERROR, "propagate": False},
+        "uvicorn": {
+            "handlers": ["default"],
+            "level": logging.ERROR,
+            "propagate": False,
+        },
     },
 }

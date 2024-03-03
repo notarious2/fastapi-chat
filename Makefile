@@ -22,6 +22,9 @@ down:
 test:
 	docker exec -it chat-backend python -m pytest -svv $(target)
 
+ftest:
+	docker exec -it chat-backend python -m pytest -x -n 2 --dist loadfile
+
 test-integration:
 	docker exec -it chat-backend python -m pytest -m "integration" -svv
 

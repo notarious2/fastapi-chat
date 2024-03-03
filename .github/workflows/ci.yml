@@ -4,6 +4,7 @@ on: [push, pull_request]
 
 jobs:
   lint:
+    name: Run Linter
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,3 +20,43 @@ jobs:
           pip install -r lint-requirements.txt
       - name: Run Ruff
         run: ruff check --output-format=github .
+  test:
+    name: Run Tests
+    needs: lint
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ["5432:5432"]
+      redis:
+        image: redis:7.0.12-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - run: pipx install poetry
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+      - run: |
+          poetry env use "3.11"
+          poetry install
+          poetry run pytest -x -n auto --dist loadfile
+        env:
+          DB_HOST: "localhost"
+          REDIS_HOST: "localhost"
+          REDIS_PORT: "6379"
