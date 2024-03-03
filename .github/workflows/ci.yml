@@ -4,6 +4,7 @@ on: [push, pull_request]
 
 jobs:
   lint:
+    if: "!contains(github.event.head_commit.message, '--no-ci')"
     name: Run Linter
     runs-on: ubuntu-latest
     steps:
@@ -21,6 +22,7 @@ jobs:
       - name: Run Ruff
         run: ruff check --output-format=github .
   test:
+    if: "!contains(github.event.head_commit.message, '--no-ci')"
     name: Run Tests
     needs: lint
     runs-on: ubuntu-latest
