@@ -22,7 +22,9 @@ DATABASE_URL_TEST = (
     f"{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 )
 engine_test = create_async_engine(DATABASE_URL_TEST, connect_args={"server_settings": {"jit": "off"}})
-async_session_maker = sessionmaker(engine_test, class_=AsyncSession, expire_on_commit=False)
+autocommit_engine = engine_test.execution_options(isolation_level="AUTOCOMMIT")
+
+async_session_maker = sessionmaker(autocommit_engine, class_=AsyncSession, expire_on_commit=False)
 metadata.bind = engine_test
 
 
@@ -36,14 +38,14 @@ app.dependency_overrides[get_async_session] = override_get_async_session
 
 @pytest.fixture(scope="session")
 async def db_session():
-    async with engine_test.begin() as conn:
+    async with autocommit_engine.begin() as conn:
         await conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {settings.DB_SCHEMA}"))
         await conn.run_sync(metadata.create_all)
     async with async_session_maker() as session:
         yield session
         await session.flush()
         await session.rollback()
-    async with engine_test.begin() as conn:
+    async with autocommit_engine.begin() as conn:
         await conn.execute(text(f"DROP SCHEMA {settings.DB_SCHEMA} CASCADE"))
 
 

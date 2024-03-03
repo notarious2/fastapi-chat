@@ -20,7 +20,6 @@ async def test_get_user_chats_succeeds_given_chat_exists(authenticated_bob_clien
         "created_at",
         "updated_at",
         "users",
-        "has_new_messages",
         "new_messages_count",
     }
 
@@ -42,6 +41,5 @@ async def test_get_user_chats_succeeds_given_user_has_multiple_chats(
             "created_at",
             "updated_at",
             "users",
-            "has_new_messages",
             "new_messages_count",
         }
