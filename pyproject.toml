@@ -32,6 +32,8 @@ aiofiles = "^23.2.1"
 boto3 = "^1.33.9"
 Pillow = "10.1.0"
 sentry-sdk = {extras = ["asyncpg", "fastapi"], version = "^1.39.1"}
+uvloop = "0.19.0"
+httptools = "0.6.1"
 
 [tool.poetry.group.test.dependencies]
 pytest = "7.4.3"
