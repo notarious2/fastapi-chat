@@ -7,7 +7,7 @@ readme = "README.md"
 
 
 [tool.poetry.dependencies]
-python = "3.11.6"
+python = "~3.11"
 fastapi = "^0.103.1"
 pydantic = {extras = ["email"], version = "^2.3.0"}
 uvicorn = "^0.23.2"
@@ -33,31 +33,25 @@ boto3 = "^1.33.9"
 Pillow = "10.1.0"
 sentry-sdk = {extras = ["asyncpg", "fastapi"], version = "^1.39.1"}
 
+[tool.poetry.group.test.dependencies]
+pytest = "7.4.3"
+pytest-asyncio = "0.23.5"
+pytest-env = "1.1.3"
+pytest-mock = "3.12.0"
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.4.2"
-isort = "^5.12.0"
-flake8 = "^6.1.0"
-black = "^23.9.1"
-flake8-pyproject = "^1.2.3"
-pytest-asyncio = "^0.21.1"
-pytest-env = "^1.0.1"
-pytest-mock = "^3.11.1"
+[tool.poetry.group.lint.dependencies]
+ruff = "0.3.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.black]
+[tool.ruff]
 line-length = 120
 
-[tool.isort]
-profile = "black"
-line_length = 120
-skip_glob = ["**/migrations/**"]
-
-[tool.flake8]
-max-line-length = 120
+[tool.ruff.lint]
+extend-select = ["W", "E", "I"]
+preview = true
 
 [tool.pytest.ini_options]
 filterwarnings = ["ignore::DeprecationWarning"]

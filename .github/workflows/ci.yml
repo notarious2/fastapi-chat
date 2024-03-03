@@ -1,0 +1,21 @@
+name: Lint and Tests
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pipx install poetry
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          poetry env use "3.11"
+          poetry export --only lint --output lint-requirements.txt
+          pip install -r lint-requirements.txt
+      - name: Run Ruff
+        run: ruff check --output-format=github .
