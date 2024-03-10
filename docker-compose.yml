@@ -16,7 +16,7 @@ services:
       - db
     networks:
       - chat-net
-    command: uvicorn src.main:app --host=0.0.0.0 --port=8001 --reload
+    command: gunicorn -w 2 -k uvicorn.workers.UvicornWorker src.main:app -b 0.0.0.0:8001
 
   db:
     image: postgres:15-alpine

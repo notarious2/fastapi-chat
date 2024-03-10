@@ -52,6 +52,10 @@ async def websocket_endpoint(
     else:
         chats = dict()
 
+    # add user socket connection to user channel
+    await socket_manager.create_user_channel(user_guid=str(current_user.guid), websocket=websocket)
+    logger.debug(f"User channels {socket_manager.user_channel}")
+
     # task for sending status messages, not dependent on cache_enabled
     user_status_task = asyncio.create_task(check_user_statuses(cache, socket_manager, current_user, chats))
 
@@ -96,8 +100,9 @@ async def websocket_endpoint(
                 await socket_manager.send_error("You have sent too many requests", websocket)
 
     except WebSocketDisconnect:
-        logging.info("Websocket is disconnected")
+        logger.info("Websocket is disconnected")
         # unsubscribe user websocket connection from all chats
+        await socket_manager.remove_websocket_from_user_channel(user_guid=str(current_user.guid), websocket=websocket)
         if chats:
             for chat_guid in chats:
                 await socket_manager.remove_user_from_chat(chat_guid, websocket)

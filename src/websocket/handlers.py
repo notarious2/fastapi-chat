@@ -1,10 +1,8 @@
-import asyncio
 import logging
 from datetime import datetime
 
 import redis.asyncio as aioredis
 from fastapi import WebSocket
-from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.managers.websocket_manager import WebSocketManager
@@ -23,7 +21,7 @@ from src.websocket.services import (
     get_message_by_guid,
     mark_last_read_message,
     mark_user_as_online,
-    send_new_chat_created_ws_message,
+    notify_friend_about_new_chat,
 )
 
 logger = logging.getLogger(__name__)
@@ -50,16 +48,18 @@ async def new_message_handler(
     message_schema = ReceiveMessageSchema(**incoming_message)
     chat_guid: str = str(message_schema.chat_guid)
 
-    notify_friend_about_new_chat: bool = False
+    # notify_friend_about_new_chat: bool = False
     # newly created chat
     if not chats or chat_guid not in chats:
+        print("YES", chats)
         chat_id: int | None = await get_chat_id_by_guid(db_session, chat_guid=chat_guid)
         if chat_id:
+            print("Chat ID", chat_id)
             # this action modifies chats variable in websocket view
             chats[chat_guid] = chat_id
             await socket_manager.add_user_to_chat(chat_guid, websocket)
             # must notify friend that new chat has been created
-            notify_friend_about_new_chat = True
+            # notify_friend_about_new_chat = True
 
         else:
             await socket_manager.send_error("Chat has not been added", websocket)
@@ -113,9 +113,11 @@ async def new_message_handler(
 
     await socket_manager.broadcast_to_chat(chat_guid, outgoing_message)
 
-    if notify_friend_about_new_chat:
-        logger.info("Notifying friend about newly created chat")
-        await send_new_chat_created_ws_message(socket_manager=socket_manager, current_user=current_user, chat=chat)
+    await notify_friend_about_new_chat(socket_manager=socket_manager, current_user=current_user, chat=chat)
+
+    # if notify_friend_about_new_chat:
+    #     logger.info("Notifying friend about newly created chat")
+    #     await send_new_chat_created_ws_message(socket_manager=socket_manager, current_user=current_user, chat=chat)
 
 
 @socket_manager.handler("message_read")
@@ -248,8 +250,6 @@ async def chat_deleted_handler(
     # get all websocket connections that belong to this chat (except for ws that sent this messsage)
     # and send notification that chat has been removed
 
-    target_websockets: set[WebSocket] = socket_manager.chats.get(chat_guid)
-
     outgoing_message = {
         "type": "chat_deleted",
         "user_guid": str(current_user.guid),
@@ -257,13 +257,17 @@ async def chat_deleted_handler(
         "chat_guid": chat_guid,
     }
 
-    if target_websockets:
-        # Send the notification message to the target user concurrently
-        # used to notify frontend
-        await asyncio.gather(
-            *[
-                socket.send_json(jsonable_encoder(outgoing_message))
-                for socket in target_websockets
-                if socket != websocket
-            ]
-        )
+    await socket_manager.broadcast_to_chat(chat_guid, outgoing_message)
+
+    # target_websockets: set[WebSocket] = socket_manager.chats.get(chat_guid)
+
+    # if target_websockets:
+    #     # Send the notification message to the target user concurrently
+    #     # used to notify frontend
+    #     await asyncio.gather(
+    #         *[
+    #             socket.send_json(jsonable_encoder(outgoing_message))
+    #             for socket in target_websockets
+    #             if socket != websocket
+    #         ]
+    #     )

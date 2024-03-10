@@ -34,7 +34,7 @@ class UserTypingSchema(BaseModel):
 
 
 class NewChatCreated(BaseModel):
-    type: str = "new_chat_created"
+    type: str = "new_chat_created"  # handled by frontend only
     chat_id: int  # need to pass for guid/id mapping [chats variable]
     chat_guid: UUID4
     created_at: datetime

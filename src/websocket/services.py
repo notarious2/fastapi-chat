@@ -155,6 +155,50 @@ async def get_chat_id_by_guid(db_session: AsyncSession, *, chat_guid: UUID) -> i
     return chat_id
 
 
+async def notify_friend_about_new_chat(socket_manager: WebSocketManager, current_user: User, chat: Chat):
+    # get friend guid
+
+    friend_guid: UUID | None = next((user.guid for user in chat.users if not user == current_user), None)
+    if not friend_guid:
+        logger.error("Friend guid not found", extra={"type": "new_chat_created", "friend_guid": friend_guid})
+        return
+    logger.debug(f"BROADCASTING TO FRIEND {friend_guid}")
+    await socket_manager.broadcast_to_user(str(friend_guid), {"Message": "WTF"})
+
+    # check if friend has active websocket connections
+    logger.debug(f"User channels {socket_manager.user_channel}")
+    # friend_websockets: set[WebSocket] = socket_manager.user_channel.get(str(friend_guid))
+
+    # if not friend_websockets:
+    #     logger.info(
+    #         "Friend doesn't have active connections", extra={"type": "new_chat_created", "friend_guid": friend_guid}
+    #     )
+    #     return
+
+    current_user_info: dict = {
+        "guid": current_user.guid,
+        "first_name": current_user.first_name,
+        "last_name": current_user.last_name,
+        "username": current_user.username,
+        "user_image": current_user.user_image,
+    }
+    payload = NewChatCreated(
+        chat_id=chat.id,
+        chat_guid=chat.guid,
+        created_at=chat.created_at,
+        updated_at=chat.updated_at,
+        friend=current_user_info,  # current user becomes a friend for a user that receives this message
+        has_new_messages=True,
+        new_messages_count=1,
+    )
+
+    json_payload: str = payload.model_dump_json()
+    print("Socket's chats", socket_manager.chats)
+    print("Broadcasting to user", friend_guid, json_payload)
+    await socket_manager.broadcast_to_user(str(friend_guid), json_payload)
+    await socket_manager.broadcast_to_user(str(current_user.guid), json_payload)
+
+
 async def send_new_chat_created_ws_message(socket_manager: WebSocketManager, current_user: User, chat: Chat):
     """
     Send a new chat created message to friend's websocket connections in the chat.

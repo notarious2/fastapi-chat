@@ -13,10 +13,10 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.11.3"
       - name: Install dependencies
         run: |
-          poetry env use "3.11"
+          poetry env use "3.11.3"
           poetry export --only lint --output lint-requirements.txt
           pip install -r lint-requirements.txt
       - name: Run Ruff
@@ -49,13 +49,13 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.11.3"
 
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: 3.11.3
       - run: |
-          poetry env use "3.11"
+          poetry env use "3.11.3"
           poetry install
           poetry run pytest -x -n auto --dist loadfile
         env:

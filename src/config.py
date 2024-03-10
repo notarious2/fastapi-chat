@@ -40,7 +40,7 @@ class GlobalSettings(BaseSettings):
     ADMIN_SECRET_KEY: str = "Hv9LGqARc473ceBUYDw1FR0QaXOA3Ky4"
 
     # redis for caching
-    REDIS_CACHE_ENABLED: bool = True
+    REDIS_CACHE_ENABLED: bool = False
     REDIS_HOST: str = "chat-redis"
     REDIS_PORT: str | int = 6379
     REDIS_PASSWORD: str | None = None

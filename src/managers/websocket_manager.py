@@ -15,6 +15,7 @@ class WebSocketManager:
         self.chats: dict = {}  # stores user WebSocket connections by chat {"chat_guid": {ws1, ws2}, ...}
         self.pubsub_client = RedisPubSubManager()
         self.user_guid_to_websocket: dict = {}  # stores user_guid: {ws1, ws2} combinations
+        self.user_channel: dict = {}
 
     def handler(self, message_type):
         def decorator(func):
@@ -43,11 +44,33 @@ class WebSocketManager:
             message = json.dumps(message)
         await self.pubsub_client.publish(chat_guid, message)
 
+    async def create_user_channel(self, user_guid: str, websocket: WebSocket):
+        if user_guid in self.user_channel:
+            self.user_channel[user_guid].add(websocket)
+        else:
+            self.user_channel[user_guid] = {websocket}
+            await self.pubsub_client.connect()
+            pubsub_subscriber = await self.pubsub_client.subscribe(user_guid)
+            asyncio.create_task(self._pubsub_data_reader_for_user(pubsub_subscriber))
+        print("Guys", self.user_channel)
+
+    async def broadcast_to_user(self, user_guid: str, message: str | dict):
+        if isinstance(message, dict):
+            message = json.dumps(message)
+        await self.pubsub_client.publish(user_guid, message)
+
+    async def remove_websocket_from_user_channel(self, user_guid: str, websocket: WebSocket) -> None:
+        self.user_channel[user_guid].remove(websocket)
+        if len(self.user_channel[user_guid]) == 0:
+            del self.user_channel[user_guid]
+            logger.info(f"Removing user from PubSub channel {user_guid}")
+            await self.pubsub_client.unsubscribe(user_guid)
+
     async def remove_user_from_chat(self, chat_guid: str, websocket: WebSocket) -> None:
         self.chats[chat_guid].remove(websocket)
         if len(self.chats[chat_guid]) == 0:
             del self.chats[chat_guid]
-            logger.info("Removing user from PubSub channel {chat_guid}")
+            logger.info(f"Removing user from PubSub channel {chat_guid}")
             await self.pubsub_client.unsubscribe(chat_guid)
 
     async def remove_user_guid_to_websocket(self, user_guid: str, websocket: WebSocket):
@@ -62,6 +85,20 @@ class WebSocketManager:
                 if message is not None:
                     chat_guid = message["channel"].decode("utf-8")
                     sockets = self.chats.get(chat_guid)
+                    if sockets:
+                        for socket in sockets:
+                            data = message["data"].decode("utf-8")
+                            await socket.send_text(data)
+        except Exception as exc:
+            logger.exception(f"Exception occurred: {exc}")
+
+    async def _pubsub_data_reader_for_user(self, pubsub_subscriber):
+        try:
+            while True:
+                message = await pubsub_subscriber.get_message(ignore_subscribe_messages=True)
+                if message is not None:
+                    chat_guid = message["channel"].decode("utf-8")
+                    sockets = self.user_channel.get(chat_guid)
                     if sockets:
                         for socket in sockets:
                             data = message["data"].decode("utf-8")
