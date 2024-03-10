@@ -14,6 +14,7 @@ Admin: https://api.ponderpal.chat/admin/ (login: `bekzod`, password: `bekzod`)
 - SQLAlchemy 2
 - Database migrations with Alembic
 - Poetry for dependency management, containerization with Docker/docker-compose
+- Linting and Formatting with <strong>Ruff</strong>
 
 ### High level functionality description
 - Fully asynchronous: FastAPI, Postgres, Redis
