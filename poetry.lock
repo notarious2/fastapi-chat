@@ -76,17 +76,6 @@ files = [
 sniffio = "*"
 
 [[package]]
-name = "async-timeout"
-version = "4.0.3"
-description = "Timeout context manager for asyncio programs"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "async-timeout-4.0.3.tar.gz", hash = "sha256:4640d96be84d82d02ed59ea2b7105a0f7b33abe8703703cd0ab0bf87c427522f"},
-    {file = "async_timeout-4.0.3-py3-none-any.whl", hash = "sha256:7405140ff1230c310e51dc27b3145b9092d659ce68ff733fb0cefe3ee42be028"},
-]
-
-[[package]]
 name = "asyncpg"
 version = "0.28.0"
 description = "An asyncio PostgreSQL driver"
@@ -1294,9 +1283,6 @@ files = [
     {file = "redis-4.6.0.tar.gz", hash = "sha256:585dc516b9eb042a619ef0a39c3d7d55fe81bdb4df09a52c9cdde0d07bf1aa7d"},
 ]
 
-[package.dependencies]
-async-timeout = {version = ">=4.0.2", markers = "python_full_version <= \"3.11.2\""}
-
 [package.extras]
 hiredis = ["hiredis (>=1.0.0)"]
 ocsp = ["cryptography (>=36.0.1)", "pyopenssl (==20.0.1)", "requests (>=2.26.0)"]
@@ -1740,5 +1726,5 @@ email = ["email-validator"]
 
 [metadata]
 lock-version = "2.0"
-python-versions = "~3.11"
-content-hash = "04dc3d4624c26a2b025cb7b27709ccaaa8797e5296f97e695e180970f33f4917"
+python-versions = "3.11.3"
+content-hash = "cf1b0128efc6d3f658306cf9602b603ca9e08b87936b75cbf8d305d9929ce100"
