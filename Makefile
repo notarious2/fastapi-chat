@@ -19,6 +19,10 @@ logs:
 down:
 	docker compose down
 
+ruff:
+	ruff format .
+	ruff check . --fix
+
 test:
 	docker exec -it chat-backend python -m pytest -svv $(target)
 

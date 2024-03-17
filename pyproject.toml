@@ -51,6 +51,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
 line-length = 120
+exclude = ["alembic"]
 
 [tool.ruff.lint]
 extend-select = ["W", "E", "I"]
