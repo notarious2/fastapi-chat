@@ -140,17 +140,12 @@ async def get_user_active_direct_chats(db_session: AsyncSession, *, current_user
         for direct_chat in direct_chats:
             direct_chats_dict[str(direct_chat.guid)] = direct_chat.id
         return direct_chats_dict
-    else:
-        return None
 
 
 async def get_chat_id_by_guid(db_session: AsyncSession, *, chat_guid: UUID) -> int | None:
     query = select(Chat.id).where(Chat.guid == chat_guid)
     result = await db_session.execute(query)
     chat_id: int | None = result.scalar_one_or_none()
-
-    if not chat_id:
-        return None
 
     return chat_id
 
