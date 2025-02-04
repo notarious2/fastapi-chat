@@ -1,3 +1,11 @@
+
+# NOTICE
+# I could no longer maintain custom domain, please use
+https://vuetify-chat.vercel.app/
+# to see the demo
+
+
+
 # Real-time Chat App with FastAPI
 
 Live Demo: https://www.ponderpal.chat
