@@ -8,11 +8,11 @@ https://vuetify-chat.vercel.app/
 
 # Real-time Chat App with FastAPI
 
-Live Demo: https://www.ponderpal.chat
+Live Demo: https://vuetify-chat.vercel.app/
 
-Swagger UI: https://api.ponderpal.chat/docs
+Swagger UI: https://fastapi-chat-2bfa6dd112d2.herokuapp.com/docs
 
-Admin: https://api.ponderpal.chat/admin/ (login: `bekzod`, password: `bekzod`)
+Admin: https://fastapi-chat-2bfa6dd112d2.herokuapp.com/admin/ (login: `bekzod`, password: `bekzod`)
 
 #### Frontend with Vue 3 and Vuetify 3, see <a href="https://github.com/notarious2/vuetify-chat">repo</a> 
 
