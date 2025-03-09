@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import UUID4, BaseModel, EmailStr, RootModel, field_validator
+from pydantic import UUID4, BaseModel, RootModel, field_validator
 
 from src.config import settings
 

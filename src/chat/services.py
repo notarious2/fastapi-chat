@@ -170,13 +170,29 @@ async def get_chat_messages(
     messages = messages[:size]
 
     # assuming only two read statuses
+    # Initialize variables to prevent NameError
+    my_last_read_message_id = None
+    other_user_last_read_message_id = None
+
+    # Loop through chat.read_statuses and assign the read message IDs
     for read_status in chat.read_statuses:
         if read_status.user_id != user_id:
             other_user_last_read_message_id = read_status.last_read_message_id
         else:
             my_last_read_message_id = read_status.last_read_message_id
 
+    # If no value is assigned, you could choose to set a default value
+    # or handle this case accordingly (e.g., using a placeholder)
+    if my_last_read_message_id is None:
+        my_last_read_message_id = 0  # Or some other default value
+
+    if other_user_last_read_message_id is None:
+        other_user_last_read_message_id = 0  # Or some other default value
+
+    # Retrieve the last read message for the other user
     last_read_message = await db_session.get(Message, other_user_last_read_message_id)
+
+    # Construct GetMessageSchema list
     get_message_schemas = [
         GetMessageSchema(
             message_guid=message.guid,
