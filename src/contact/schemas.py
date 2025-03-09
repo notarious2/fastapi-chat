@@ -8,7 +8,7 @@ from src.config import settings
 class GetUserSchema(BaseModel):
     guid: UUID4
     username: str
-    email: EmailStr
+    email: str
     first_name: str
     last_name: str
     created_at: datetime
